@@ -2,14 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#0a0a0a" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/apple-touch-icon-167x167.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/icons/apple-touch-icon-120x120.png" />
     <title>LAN Video Server</title>
     <script src="https://unpkg.com/lucide@0.294.0/dist/umd/lucide.min.js"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <style>
       :root {
         --sp-3: 3px;
@@ -39,73 +46,134 @@
         --text-base: 16px;
         --text-lg: 21px;
         --text-2xl: 34px;
+        --safe-top: env(safe-area-inset-top, 0px);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
       }
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
       }
       body {
-        font-family:
-          "Inter",
-          -apple-system,
-          sans-serif;
+        font-family: "Inter", -apple-system, sans-serif;
         background: var(--black);
         color: var(--white);
         min-height: 100vh;
+        min-height: 100dvh;
         line-height: 1.618;
         -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
       }
+
+      /* Mobile-first container */
       .container {
         max-width: 987px;
         margin: 0 auto;
-        padding: var(--sp-34) var(--sp-21);
+        padding: var(--sp-21);
+        padding-top: calc(var(--sp-21) + var(--safe-top));
+        padding-bottom: calc(var(--sp-21) + var(--safe-bottom));
       }
 
-      /* Header */
+      /* Header - compact on mobile */
       .header {
         display: flex;
         align-items: center;
-        gap: var(--sp-21);
-        margin-bottom: var(--sp-55);
-        padding-bottom: var(--sp-21);
+        gap: var(--sp-13);
+        margin-bottom: var(--sp-34);
+        padding-bottom: var(--sp-13);
         border-bottom: 1px solid var(--gray-800);
       }
       .logo {
-        width: var(--sp-55);
-        height: var(--sp-55);
+        width: 44px;
+        height: 44px;
         display: flex;
         align-items: center;
         justify-content: center;
         background: var(--accent);
+        border-radius: 12px;
+        flex-shrink: 0;
       }
       .logo i {
-        width: var(--sp-34);
-        height: var(--sp-34);
+        width: 24px;
+        height: 24px;
         color: var(--white);
       }
       .header-text h1 {
-        font-size: var(--text-2xl);
+        font-size: var(--text-lg);
         font-weight: 600;
         letter-spacing: -0.02em;
       }
       .header-text p {
-        font-size: var(--text-sm);
+        font-size: var(--text-xs);
         color: var(--gray-400);
       }
 
-      /* Main input area */
+      /* TV Status - mobile optimized */
+      .tv-card {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-13);
+        padding: var(--sp-13);
+        background: var(--gray-900);
+        border: 1px solid var(--gray-800);
+        border-radius: 12px;
+        margin-bottom: var(--sp-21);
+      }
+      .tv-icon {
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--gray-800);
+        border-radius: 10px;
+        flex-shrink: 0;
+      }
+      .tv-icon i {
+        width: 20px;
+        height: 20px;
+      }
+      .tv-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .tv-info h3 {
+        font-size: var(--text-sm);
+        font-weight: 500;
+      }
+      .tv-info p {
+        font-size: var(--text-xs);
+        color: var(--gray-400);
+      }
+      .tv-info a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .tv-count {
+        font-size: var(--text-2xl);
+        font-weight: 700;
+        color: var(--success);
+        min-width: 44px;
+        text-align: center;
+      }
+      .tv-count.zero {
+        color: var(--gray-600);
+      }
+
+      /* Main input - touch friendly */
       .main-input {
         position: relative;
-        margin-bottom: var(--sp-21);
+        margin-bottom: var(--sp-13);
       }
       .main-input input {
         width: 100%;
-        padding: var(--sp-21) var(--sp-21) var(--sp-21) var(--sp-55);
-        font-size: var(--text-lg);
+        padding: var(--sp-13) var(--sp-13) var(--sp-13) 44px;
+        font-size: var(--text-base);
         font-family: inherit;
         background: var(--gray-900);
         border: 2px solid var(--gray-700);
+        border-radius: 12px;
         color: var(--white);
         transition: all 0.2s;
       }
@@ -118,14 +186,14 @@
       }
       .main-input .input-icon {
         position: absolute;
-        left: var(--sp-21);
+        left: var(--sp-13);
         top: 50%;
         transform: translateY(-50%);
         color: var(--gray-500);
       }
       .main-input .input-icon i {
-        width: var(--sp-21);
-        height: var(--sp-21);
+        width: 18px;
+        height: 18px;
       }
 
       /* Detection hint */
@@ -135,99 +203,117 @@
         gap: var(--sp-8);
         padding: var(--sp-8) var(--sp-13);
         background: var(--gray-800);
-        font-size: var(--text-sm);
+        border-radius: 8px;
+        font-size: var(--text-xs);
         color: var(--gray-400);
-        margin-bottom: var(--sp-21);
-        min-height: 36px;
+        margin-bottom: var(--sp-13);
+        min-height: 32px;
       }
       .detect-hint i {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
       }
       .detect-hint.ready {
         color: var(--success);
       }
       .detect-hint .site-badge {
         background: var(--gray-700);
-        padding: 2px 8px;
-        font-size: var(--text-xs);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
         text-transform: uppercase;
         letter-spacing: 0.05em;
       }
 
-      /* Action button */
+      /* Action button - big touch target */
       .send-btn {
         width: 100%;
-        padding: var(--sp-21);
+        padding: var(--sp-13);
         font-size: var(--text-base);
         font-weight: 600;
         font-family: inherit;
         background: var(--accent);
         color: var(--white);
         border: none;
+        border-radius: 12px;
         cursor: pointer;
-        transition: background 0.15s;
+        transition: all 0.15s;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.05em;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: var(--sp-8);
+        min-height: 48px;
       }
       .send-btn:hover {
         background: var(--accent-hover);
+      }
+      .send-btn:active {
+        transform: scale(0.98);
       }
       .send-btn:disabled {
         background: var(--gray-700);
         cursor: not-allowed;
       }
       .send-btn i {
-        width: var(--sp-21);
-        height: var(--sp-21);
+        width: 18px;
+        height: 18px;
       }
 
-      /* Secondary actions */
+      /* Secondary actions - scrollable row on mobile */
       .secondary-actions {
         display: flex;
         gap: var(--sp-8);
         margin-top: var(--sp-13);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: var(--sp-5);
+      }
+      .secondary-actions::-webkit-scrollbar {
+        display: none;
       }
       .sec-btn {
-        flex: 1;
-        padding: var(--sp-13);
-        font-size: var(--text-sm);
+        flex-shrink: 0;
+        padding: var(--sp-8) var(--sp-13);
+        font-size: var(--text-xs);
         font-family: inherit;
-        background: transparent;
-        color: var(--gray-400);
+        background: var(--gray-800);
+        color: var(--gray-300);
         border: 1px solid var(--gray-700);
+        border-radius: 8px;
         cursor: pointer;
         transition: all 0.15s;
         display: flex;
         align-items: center;
-        justify-content: center;
         gap: var(--sp-5);
+        white-space: nowrap;
       }
-      .sec-btn:hover {
+      .sec-btn:hover, .sec-btn:active {
         color: var(--white);
-        border-color: var(--white);
+        background: var(--gray-700);
       }
       .sec-btn i {
         width: 14px;
         height: 14px;
       }
 
-      /* Remote Control */
+      /* Remote Control - the star of the show */
       .remote-control {
         margin-top: var(--sp-21);
         padding: var(--sp-21);
-        background: var(--gray-900);
+        background: linear-gradient(180deg, var(--gray-900) 0%, var(--black) 100%);
         border: 1px solid var(--gray-800);
+        border-radius: 16px;
       }
       .remote-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: var(--sp-13);
+        gap: var(--sp-8);
       }
       .remote-title {
         font-size: var(--text-xs);
@@ -238,29 +324,37 @@
       .remote-media {
         font-size: var(--text-sm);
         color: var(--gray-300);
-        max-width: 200px;
+        flex: 1;
+        text-align: right;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+
+      /* Progress bar - chunky for touch */
       .remote-progress {
         display: flex;
         align-items: center;
-        gap: var(--sp-13);
-        margin-bottom: var(--sp-13);
+        gap: var(--sp-8);
+        margin-bottom: var(--sp-21);
       }
       .remote-time {
         font-size: var(--text-xs);
         color: var(--gray-400);
         font-variant-numeric: tabular-nums;
-        min-width: 45px;
+        min-width: 40px;
+      }
+      .remote-time:last-child {
+        text-align: right;
       }
       .remote-seek {
         flex: 1;
-        height: 6px;
+        height: 8px;
         background: var(--gray-700);
+        border-radius: 4px;
         cursor: pointer;
         position: relative;
+        overflow: hidden;
       }
       .remote-seek-fill {
         position: absolute;
@@ -269,110 +363,310 @@
         height: 100%;
         background: var(--accent);
         width: 0%;
+        border-radius: 4px;
         transition: width 0.1s;
       }
-      .remote-seek:hover .remote-seek-fill {
+      .remote-seek:active .remote-seek-fill {
         background: var(--white);
       }
-      .remote-buttons {
+
+      /* Swipe gesture zone */
+      .swipe-zone {
+        position: relative;
+        height: 120px;
+        background: var(--gray-800);
+        border-radius: 16px;
+        margin-bottom: var(--sp-13);
         display: flex;
-        gap: var(--sp-8);
+        align-items: center;
         justify-content: center;
+        overflow: hidden;
+        touch-action: pan-x;
+        user-select: none;
+        cursor: grab;
+      }
+      .swipe-zone:active {
+        cursor: grabbing;
+      }
+      .swipe-zone-hint {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--sp-5);
+        color: var(--gray-500);
+        pointer-events: none;
+        transition: opacity 0.2s;
+      }
+      .swipe-zone-hint i {
+        width: 32px;
+        height: 32px;
+      }
+      .swipe-zone-hint span {
+        font-size: var(--text-xs);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .swipe-zone.swiping .swipe-zone-hint {
+        opacity: 0.3;
+      }
+      .swipe-feedback {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 48px;
+        font-weight: 700;
+        color: var(--white);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s;
+      }
+      .swipe-zone.swiping .swipe-feedback {
+        opacity: 1;
+      }
+      .swipe-indicator {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 0;
+        background: var(--accent);
+        opacity: 0.3;
+        pointer-events: none;
+        transition: width 0.05s;
+      }
+      .swipe-indicator.left {
+        right: 50%;
+      }
+      .swipe-indicator.right {
+        left: 50%;
+      }
+
+      /* Remote buttons - big, beautiful, touch-optimized */
+      .remote-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1.5fr 1fr 1fr;
+        gap: var(--sp-8);
       }
       .remote-btn {
-        padding: var(--sp-13) var(--sp-21);
+        padding: var(--sp-13);
         font-size: var(--text-sm);
         font-family: inherit;
         background: var(--gray-800);
         color: var(--gray-300);
-        border: 1px solid var(--gray-700);
+        border: none;
+        border-radius: 12px;
         cursor: pointer;
         transition: all 0.15s;
         display: flex;
         align-items: center;
-        gap: var(--sp-5);
+        justify-content: center;
+        gap: var(--sp-3);
+        min-height: 48px;
       }
       .remote-btn:hover {
         color: var(--white);
         background: var(--gray-700);
-        border-color: var(--gray-600);
       }
       .remote-btn:active {
+        transform: scale(0.95);
         background: var(--accent);
-        border-color: var(--accent);
+        color: var(--white);
       }
       .remote-btn i {
-        width: 16px;
-        height: 16px;
+        width: 20px;
+        height: 20px;
+      }
+      .remote-btn span {
+        font-size: var(--text-xs);
+        font-weight: 600;
       }
       .remote-play {
-        padding: var(--sp-13) var(--sp-34);
         background: var(--accent);
-        border-color: var(--accent);
-        color: var(--black);
+        color: var(--white);
       }
       .remote-play:hover {
-        background: var(--white);
-        border-color: var(--white);
+        background: var(--accent-hover);
+      }
+      .remote-play i {
+        width: 28px;
+        height: 28px;
       }
 
-      /* TV status card */
-      .tv-card {
-        display: flex;
-        align-items: center;
-        gap: var(--sp-21);
-        padding: var(--sp-21);
-        background: var(--gray-900);
-        border: 1px solid var(--gray-800);
-        margin-bottom: var(--sp-34);
+      /* Episode Panel in Remote */
+      .episode-section {
+        margin-top: var(--sp-21);
+        padding-top: var(--sp-21);
+        border-top: 1px solid var(--gray-800);
+        display: none;
       }
-      .tv-icon {
-        width: var(--sp-55);
-        height: var(--sp-55);
+      .episode-section.active {
+        display: block;
+      }
+      .episode-header {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        justify-content: center;
+        margin-bottom: var(--sp-13);
+      }
+      .episode-label {
+        font-size: var(--text-xs);
+        color: var(--gray-500);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .episode-count {
+        font-size: var(--text-xs);
+        color: var(--gray-400);
         background: var(--gray-800);
+        padding: 2px 8px;
+        border-radius: 4px;
       }
-      .tv-icon i {
-        width: var(--sp-21);
-        height: var(--sp-21);
+      .episode-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: var(--sp-8);
+        max-height: 200px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-right: var(--sp-5);
       }
-      .tv-info {
-        flex: 1;
+      .episode-grid::-webkit-scrollbar {
+        width: 4px;
       }
-      .tv-info h3 {
-        font-size: var(--text-base);
-        font-weight: 500;
+      .episode-grid::-webkit-scrollbar-track {
+        background: var(--gray-800);
+        border-radius: 2px;
+      }
+      .episode-grid::-webkit-scrollbar-thumb {
+        background: var(--gray-600);
+        border-radius: 2px;
+      }
+      .episode-btn {
+        padding: var(--sp-8) var(--sp-13);
+        font-size: var(--text-xs);
+        font-family: inherit;
+        background: var(--gray-800);
+        color: var(--gray-300);
+        border: 1px solid var(--gray-700);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-align: left;
+        overflow: hidden;
+      }
+      .episode-btn:hover {
+        border-color: var(--gray-600);
+        color: var(--white);
+      }
+      .episode-btn:active {
+        transform: scale(0.98);
+      }
+      .episode-btn.active {
+        border-color: var(--accent);
+        background: var(--gray-700);
+        color: var(--white);
+      }
+      .episode-btn-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
         margin-bottom: 2px;
       }
-      .tv-info p {
+      .episode-btn-meta {
+        font-size: 10px;
+        color: var(--gray-500);
+      }
+
+      /* Status */
+      .status {
+        margin-top: var(--sp-13);
+        padding: var(--sp-13);
+        background: var(--gray-900);
+        border-left: 3px solid var(--gray-700);
+        border-radius: 0 8px 8px 0;
         font-size: var(--text-sm);
         color: var(--gray-400);
       }
-      .tv-info a {
-        color: var(--white);
-        text-decoration: underline;
-        text-underline-offset: 3px;
-      }
-      .tv-count {
-        font-size: var(--text-2xl);
-        font-weight: 600;
+      .status.success {
+        border-color: var(--success);
         color: var(--success);
       }
-      .tv-count.zero {
-        color: var(--gray-600);
+      .status.error {
+        border-color: var(--accent);
+        color: var(--accent);
       }
 
-      /* History */
+      /* Preview - collapsed by default on mobile */
+      .preview {
+        margin-top: var(--sp-21);
+      }
+      .preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--sp-8);
+        cursor: pointer;
+      }
+      .preview-title {
+        font-size: var(--text-xs);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--gray-400);
+        display: flex;
+        align-items: center;
+        gap: var(--sp-5);
+      }
+      .preview-title i {
+        width: 14px;
+        height: 14px;
+        transition: transform 0.2s;
+      }
+      .preview.collapsed .preview-title i {
+        transform: rotate(-90deg);
+      }
+      .preview-container {
+        aspect-ratio: 16/9;
+        background: var(--gray-900);
+        border: 1px solid var(--gray-800);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+      .preview.collapsed .preview-container {
+        display: none;
+      }
+      .preview-container video,
+      .preview-container iframe,
+      .preview-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 12px;
+      }
+      .preview-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--sp-8);
+        color: var(--gray-600);
+      }
+      .preview-placeholder i {
+        width: var(--sp-34);
+        height: var(--sp-34);
+      }
+
+      /* History - minimal on mobile */
       .history {
-        margin-top: var(--sp-55);
+        margin-top: var(--sp-34);
       }
       .history-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: var(--sp-13);
+        margin-bottom: var(--sp-8);
       }
       .history-title {
         font-size: var(--text-xs);
@@ -387,31 +681,31 @@
         background: none;
         border: none;
         cursor: pointer;
-      }
-      .history-clear:hover {
-        color: var(--white);
+        padding: var(--sp-5);
       }
       .history-list {
         display: flex;
         flex-direction: column;
-        gap: var(--sp-3);
+        gap: var(--sp-5);
       }
       .history-item {
         display: flex;
         align-items: center;
-        gap: var(--sp-13);
-        padding: var(--sp-13);
+        gap: var(--sp-8);
+        padding: var(--sp-8) var(--sp-13);
         background: var(--gray-900);
         border: 1px solid transparent;
+        border-radius: 8px;
         cursor: pointer;
         transition: all 0.15s;
       }
-      .history-item:hover {
+      .history-item:hover, .history-item:active {
         border-color: var(--gray-700);
+        background: var(--gray-800);
       }
       .history-item i {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
         color: var(--gray-500);
         flex-shrink: 0;
       }
@@ -423,7 +717,7 @@
         text-overflow: ellipsis;
       }
       .history-item .site {
-        font-size: var(--text-xs);
+        font-size: 10px;
         color: var(--gray-600);
         text-transform: uppercase;
       }
@@ -437,65 +731,6 @@
       }
       .history-item:hover .delete {
         opacity: 1;
-      }
-      .history-item .delete:hover {
-        color: var(--accent);
-      }
-
-      /* Preview */
-      .preview {
-        margin-top: var(--sp-34);
-      }
-      .preview-title {
-        font-size: var(--text-xs);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--gray-400);
-        margin-bottom: var(--sp-13);
-      }
-      .preview-container {
-        aspect-ratio: 16/9;
-        background: var(--gray-900);
-        border: 1px solid var(--gray-800);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-      }
-      .preview-container video,
-      .preview-container iframe,
-      .preview-container img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-      }
-      .preview-placeholder {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: var(--sp-8);
-        color: var(--gray-600);
-      }
-      .preview-placeholder i {
-        width: var(--sp-34);
-        height: var(--sp-34);
-      }
-
-      /* Status */
-      .status {
-        margin-top: var(--sp-13);
-        padding: var(--sp-13);
-        background: var(--gray-900);
-        border-left: 2px solid var(--gray-700);
-        font-size: var(--text-sm);
-        color: var(--gray-400);
-      }
-      .status.success {
-        border-color: var(--success);
-      }
-      .status.error {
-        border-color: var(--accent);
       }
 
       /* Drop zone */
@@ -513,8 +748,10 @@
       }
       .drop-zone-inner {
         border: 2px dashed var(--gray-600);
-        padding: var(--sp-89);
+        padding: var(--sp-55);
         text-align: center;
+        border-radius: 16px;
+        margin: var(--sp-21);
       }
       .drop-zone-inner i {
         width: var(--sp-55);
@@ -522,46 +759,34 @@
         color: var(--gray-400);
         margin-bottom: var(--sp-21);
       }
-      .drop-zone-inner p {
-        font-size: var(--text-lg);
-        color: var(--gray-400);
-      }
 
-      /* Search modal */
+      /* Search Modal - fullscreen on mobile */
       .modal {
         position: fixed;
         inset: 0;
-        background: rgba(10, 10, 10, 0.95);
+        background: var(--black);
         display: none;
-        align-items: center;
-        justify-content: center;
+        flex-direction: column;
         z-index: 1000;
-        padding: var(--sp-21);
       }
       .modal.active {
         display: flex;
       }
-      .modal-content {
-        background: var(--gray-900);
-        border: 1px solid var(--gray-700);
-        max-width: 987px;
-        width: 100%;
-        max-height: 90vh;
-        display: flex;
-        flex-direction: column;
-      }
       .modal-header {
-        padding: var(--sp-21);
+        padding: var(--sp-13);
+        padding-top: calc(var(--sp-13) + var(--safe-top));
         border-bottom: 1px solid var(--gray-800);
         display: flex;
         align-items: center;
-        gap: var(--sp-13);
+        gap: var(--sp-8);
+        background: var(--gray-900);
       }
       .modal-header input {
         flex: 1;
-        padding: var(--sp-13);
+        padding: var(--sp-8) var(--sp-13);
         background: var(--gray-800);
         border: 1px solid var(--gray-700);
+        border-radius: 8px;
         color: var(--white);
         font-family: inherit;
         font-size: var(--text-base);
@@ -571,44 +796,47 @@
         border-color: var(--accent);
       }
       .modal-header .close-btn {
-        width: var(--sp-34);
-        height: var(--sp-34);
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: transparent;
+        background: var(--gray-800);
         border: none;
+        border-radius: 8px;
         color: var(--gray-400);
         cursor: pointer;
-      }
-      .modal-header .close-btn:hover {
-        color: var(--white);
+        flex-shrink: 0;
       }
       .modal-tabs {
         display: flex;
         padding: var(--sp-8);
-        gap: var(--sp-3);
+        gap: var(--sp-5);
         border-bottom: 1px solid var(--gray-800);
+        background: var(--gray-900);
+        overflow-x: auto;
       }
       .modal-tab {
         padding: var(--sp-8) var(--sp-13);
         background: transparent;
         border: none;
+        border-radius: 6px;
         color: var(--gray-400);
         cursor: pointer;
         font-family: inherit;
         font-size: var(--text-sm);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        white-space: nowrap;
       }
       .modal-tab.active {
         color: var(--white);
-        background: var(--gray-800);
+        background: var(--gray-700);
       }
       .modal-body {
         flex: 1;
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
         padding: var(--sp-13);
+        padding-bottom: calc(var(--sp-13) + var(--safe-bottom));
       }
       .search-results {
         display: flex;
@@ -617,20 +845,23 @@
       }
       .search-result {
         display: flex;
-        gap: var(--sp-13);
-        padding: var(--sp-13);
-        background: var(--gray-800);
-        border: 1px solid transparent;
+        gap: var(--sp-8);
+        padding: var(--sp-8);
+        background: var(--gray-900);
+        border: 1px solid var(--gray-800);
+        border-radius: 12px;
         cursor: pointer;
         transition: all 0.15s;
       }
-      .search-result:hover {
-        border-color: var(--gray-600);
+      .search-result:active {
+        background: var(--gray-800);
+        border-color: var(--gray-700);
       }
       .search-result-thumb {
-        width: 144px;
-        height: 81px;
-        background: var(--gray-700);
+        width: 120px;
+        height: 68px;
+        background: var(--gray-800);
+        border-radius: 8px;
         flex-shrink: 0;
         overflow: hidden;
       }
@@ -641,36 +872,38 @@
       }
       .search-result-info {
         flex: 1;
+        min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: var(--sp-5);
+        justify-content: center;
+        gap: var(--sp-3);
       }
       .search-result-title {
-        font-size: var(--text-base);
+        font-size: var(--text-sm);
         font-weight: 500;
         line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
       .search-result-meta {
-        font-size: var(--text-sm);
+        font-size: var(--text-xs);
         color: var(--gray-400);
       }
-      .search-loading {
+      .search-loading, .search-empty {
         text-align: center;
         padding: var(--sp-34);
-        color: var(--gray-400);
-      }
-      .search-empty {
-        text-align: center;
-        padding: var(--sp-34);
-        color: var(--gray-600);
+        color: var(--gray-500);
       }
 
-      /* Bookmarklet */
+      /* Bookmarklet - hidden on mobile by default */
       .bookmarklet {
         margin-top: var(--sp-34);
-        padding: var(--sp-21);
+        padding: var(--sp-13);
         background: var(--gray-900);
         border: 1px solid var(--gray-800);
+        border-radius: 12px;
       }
       .bookmarklet-title {
         font-size: var(--text-xs);
@@ -678,27 +911,28 @@
         text-transform: uppercase;
         letter-spacing: 0.1em;
         color: var(--gray-400);
-        margin-bottom: var(--sp-8);
+        margin-bottom: var(--sp-5);
       }
       .bookmarklet-link {
         display: inline-block;
-        padding: var(--sp-8) var(--sp-13);
+        padding: var(--sp-5) var(--sp-8);
         background: var(--gray-800);
         color: var(--white);
         text-decoration: none;
-        font-size: var(--text-sm);
+        font-size: var(--text-xs);
         border: 1px dashed var(--gray-600);
+        border-radius: 6px;
       }
       .bookmarklet-hint {
-        font-size: var(--text-xs);
+        font-size: 10px;
         color: var(--gray-600);
-        margin-top: var(--sp-8);
+        margin-top: var(--sp-5);
       }
 
       /* Footer */
       .footer {
-        margin-top: var(--sp-89);
-        padding-top: var(--sp-21);
+        margin-top: var(--sp-55);
+        padding-top: var(--sp-13);
         border-top: 1px solid var(--gray-800);
         display: flex;
         justify-content: space-between;
@@ -706,13 +940,104 @@
         color: var(--gray-600);
       }
 
-      @media (max-width: 610px) {
-        .tv-card {
-          flex-direction: column;
-          text-align: center;
+      /* Desktop optimizations */
+      @media (min-width: 768px) {
+        .container {
+          padding: var(--sp-34);
         }
-        .secondary-actions {
-          flex-wrap: wrap;
+        .header {
+          gap: var(--sp-21);
+          margin-bottom: var(--sp-55);
+          padding-bottom: var(--sp-21);
+        }
+        .logo {
+          width: var(--sp-55);
+          height: var(--sp-55);
+        }
+        .logo i {
+          width: var(--sp-34);
+          height: var(--sp-34);
+        }
+        .header-text h1 {
+          font-size: var(--text-2xl);
+        }
+        .header-text p {
+          font-size: var(--text-sm);
+        }
+        .tv-card {
+          padding: var(--sp-21);
+          margin-bottom: var(--sp-34);
+        }
+        .tv-icon {
+          width: var(--sp-55);
+          height: var(--sp-55);
+        }
+        .tv-info h3 {
+          font-size: var(--text-base);
+        }
+        .main-input input {
+          padding: var(--sp-21) var(--sp-21) var(--sp-21) var(--sp-55);
+          font-size: var(--text-lg);
+        }
+        .main-input .input-icon {
+          left: var(--sp-21);
+        }
+        .main-input .input-icon i {
+          width: var(--sp-21);
+          height: var(--sp-21);
+        }
+        .send-btn {
+          padding: var(--sp-21);
+        }
+        .sec-btn {
+          flex: 1;
+          padding: var(--sp-13);
+          font-size: var(--text-sm);
+        }
+        .remote-buttons {
+          gap: var(--sp-13);
+        }
+        .episode-grid {
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          max-height: 250px;
+        }
+        .modal {
+          background: rgba(10, 10, 10, 0.95);
+          align-items: center;
+          justify-content: center;
+          padding: var(--sp-21);
+        }
+        .modal-content {
+          background: var(--gray-900);
+          border: 1px solid var(--gray-700);
+          border-radius: 16px;
+          max-width: 800px;
+          width: 100%;
+          max-height: 80vh;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .modal-header {
+          padding: var(--sp-21);
+          border-radius: 16px 16px 0 0;
+        }
+        .search-result-thumb {
+          width: 144px;
+          height: 81px;
+        }
+      }
+
+      /* Small mobile optimizations */
+      @media (max-width: 380px) {
+        .remote-buttons {
+          grid-template-columns: repeat(5, 1fr);
+        }
+        .remote-btn span {
+          display: none;
+        }
+        .episode-grid {
+          grid-template-columns: 1fr 1fr;
         }
       }
     </style>
@@ -729,25 +1054,16 @@
     <div class="modal" id="searchModal">
       <div class="modal-content">
         <div class="modal-header">
-          <input
-            type="text"
-            id="searchInput"
-            placeholder="Шукати відео..."
-            autocomplete="off"
-          />
-          <button class="close-btn" id="closeSearch">
-            <i data-lucide="x"></i>
-          </button>
+          <input type="text" id="searchInput" placeholder="Search videos..." autocomplete="off" />
+          <button class="close-btn" id="closeSearch"><i data-lucide="x"></i></button>
         </div>
         <div class="modal-tabs">
-          <button class="modal-tab active" data-source="youtube">
-            YouTube
-          </button>
+          <button class="modal-tab active" data-source="youtube">YouTube</button>
           <button class="modal-tab" data-source="torrents">Torrents</button>
         </div>
         <div class="modal-body">
           <div id="searchResultsContainer">
-            <div class="search-empty">Введіть запит для пошуку</div>
+            <div class="search-empty">Enter a search query</div>
           </div>
         </div>
       </div>
@@ -758,7 +1074,7 @@
         <div class="logo"><i data-lucide="play"></i></div>
         <div class="header-text">
           <h1>LAN Video</h1>
-          <p>Any URL → TV</p>
+          <p>Any URL to TV</p>
         </div>
       </header>
 
@@ -767,28 +1083,21 @@
         <div class="tv-icon"><i data-lucide="tv"></i></div>
         <div class="tv-info">
           <h3>Television</h3>
-          <p>Open <a href="/tv.html" id="tvLink">/tv.html</a> on your TV</p>
+          <p>Open <a href="/tv.html" id="tvLink">/tv.html</a> on TV</p>
         </div>
         <div class="tv-count zero" id="tvCount">0</div>
       </div>
 
       <!-- Main Input -->
       <div class="main-input">
-        <span class="input-icon"
-          ><i data-lucide="link" id="inputIcon"></i
-        ></span>
-        <input
-          type="text"
-          id="url"
-          placeholder="Paste any URL — YouTube, TikTok, torrent, video..."
-          autocomplete="off"
-        />
+        <span class="input-icon"><i data-lucide="link" id="inputIcon"></i></span>
+        <input type="text" id="url" placeholder="Paste any video URL..." autocomplete="off" />
       </div>
 
       <!-- Detection hint -->
       <div class="detect-hint" id="detectHint">
         <i data-lucide="info"></i>
-        <span id="detectText">Paste a URL to detect type</span>
+        <span id="detectText">Paste URL to detect type</span>
       </div>
 
       <!-- Send button -->
@@ -799,25 +1108,17 @@
 
       <!-- Secondary actions -->
       <div class="secondary-actions">
-        <button class="sec-btn" id="searchBtn">
-          <i data-lucide="search"></i> Пошук
-        </button>
-        <button class="sec-btn" id="playHereBtn">
-          <i data-lucide="play"></i> Play here
-        </button>
-        <button class="sec-btn" id="copyLinkBtn">
-          <i data-lucide="link"></i> Copy link
-        </button>
-        <button class="sec-btn" id="clearTvBtn">
-          <i data-lucide="x"></i> Clear TV
-        </button>
+        <button class="sec-btn" id="searchBtn"><i data-lucide="search"></i> Search</button>
+        <button class="sec-btn" id="playHereBtn"><i data-lucide="play"></i> Play here</button>
+        <button class="sec-btn" id="copyLinkBtn"><i data-lucide="link"></i> Copy</button>
+        <button class="sec-btn" id="clearTvBtn"><i data-lucide="x"></i> Clear TV</button>
       </div>
 
       <!-- Remote Control -->
       <div class="remote-control" id="remoteControl">
         <div class="remote-header">
-          <div class="remote-title">Пульт TV</div>
-          <div class="remote-media" id="remoteMedia">Нічого не грає</div>
+          <div class="remote-title">TV Remote</div>
+          <div class="remote-media" id="remoteMedia">Nothing playing</div>
         </div>
         <div class="remote-progress">
           <span class="remote-time" id="remoteCurrentTime">00:00</span>
@@ -826,26 +1127,42 @@
           </div>
           <span class="remote-time" id="remoteDuration">00:00</span>
         </div>
+        <!-- Swipe Zone for gesture seeking -->
+        <div class="swipe-zone" id="swipeZone">
+          <div class="swipe-indicator left" id="swipeIndicatorLeft"></div>
+          <div class="swipe-indicator right" id="swipeIndicatorRight"></div>
+          <div class="swipe-zone-hint">
+            <i data-lucide="move-horizontal"></i>
+            <span>Swipe to seek</span>
+          </div>
+          <div class="swipe-feedback" id="swipeFeedback">+0s</div>
+        </div>
+
         <div class="remote-buttons">
-          <button class="remote-btn" id="remoteBack30" title="-30 сек">
-            <i data-lucide="rewind"></i> 30
+          <button class="remote-btn" id="remoteBack30" title="-30s">
+            <i data-lucide="rewind"></i><span>30</span>
           </button>
-          <button class="remote-btn" id="remoteBack10" title="-10 сек">
+          <button class="remote-btn" id="remoteBack10" title="-10s">
             <i data-lucide="skip-back"></i>
           </button>
-          <button
-            class="remote-btn remote-play"
-            id="remotePlayPause"
-            title="Play/Pause"
-          >
+          <button class="remote-btn remote-play" id="remotePlayPause" title="Play/Pause">
             <i data-lucide="play" id="remotePlayIcon"></i>
           </button>
-          <button class="remote-btn" id="remoteForward10" title="+10 сек">
+          <button class="remote-btn" id="remoteForward10" title="+10s">
             <i data-lucide="skip-forward"></i>
           </button>
-          <button class="remote-btn" id="remoteForward30" title="+30 сек">
-            30 <i data-lucide="fast-forward"></i>
+          <button class="remote-btn" id="remoteForward30" title="+30s">
+            <span>30</span><i data-lucide="fast-forward"></i>
           </button>
+        </div>
+
+        <!-- Episode Section -->
+        <div class="episode-section" id="episodeSection">
+          <div class="episode-header">
+            <span class="episode-label">Episodes</span>
+            <span class="episode-count" id="episodeCount">0 episodes</span>
+          </div>
+          <div class="episode-grid" id="episodeGrid"></div>
         </div>
       </div>
 
@@ -853,8 +1170,10 @@
       <div class="status" id="status">Ready</div>
 
       <!-- Preview -->
-      <div class="preview">
-        <div class="preview-title">Preview</div>
+      <div class="preview collapsed" id="previewSection">
+        <div class="preview-header" id="previewToggle">
+          <span class="preview-title"><i data-lucide="chevron-down"></i> Preview</span>
+        </div>
         <div class="preview-container" id="preview">
           <div class="preview-placeholder">
             <i data-lucide="film"></i>
@@ -867,7 +1186,7 @@
       <div class="history" id="historySection">
         <div class="history-header">
           <span class="history-title">Recent</span>
-          <button class="history-clear" id="clearHistory">Clear all</button>
+          <button class="history-clear" id="clearHistory">Clear</button>
         </div>
         <div class="history-list" id="historyList"></div>
       </div>
@@ -875,10 +1194,8 @@
       <!-- Bookmarklet -->
       <div class="bookmarklet">
         <div class="bookmarklet-title">Bookmarklet</div>
-        <a class="bookmarklet-link" id="bookmarklet" href="#">→ Send to TV</a>
-        <div class="bookmarklet-hint">
-          Drag this to your bookmarks bar. Click it on any page with video.
-        </div>
+        <a class="bookmarklet-link" id="bookmarklet" href="#">Send to TV</a>
+        <div class="bookmarklet-hint">Drag to bookmarks bar</div>
       </div>
 
       <footer class="footer">
@@ -904,38 +1221,40 @@
       const searchModal = $("searchModal");
       const searchInput = $("searchInput");
       const searchResultsContainer = $("searchResultsContainer");
+      const episodeSection = $("episodeSection");
+      const episodeGrid = $("episodeGrid");
+      const episodeCount = $("episodeCount");
 
       // Server info
       $("serverInfo").textContent = location.host;
       $("tvLink").href = `http://${location.host}/tv.html`;
 
+      // Preview toggle
+      $("previewToggle").addEventListener("click", () => {
+        $("previewSection").classList.toggle("collapsed");
+        lucide.createIcons();
+      });
+
       // Bookmarklet
       const bookmarkletCode = `javascript:(function(){var s=document.location.href;fetch('http://${location.host}/api/url2hls',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:s})}).then(r=>r.json()).then(d=>{if(d.streamUrl){fetch('http://${location.host}/tv/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:d.streamUrl})}).then(()=>alert('Sent to TV: '+d.name)).catch(e=>alert('Error: '+e))}else{fetch('http://${location.host}/tv/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:s})}).then(()=>alert('Sent to TV')).catch(e=>alert('Error: '+e))}}).catch(()=>{fetch('http://${location.host}/tv/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:s})}).then(()=>alert('Sent to TV'))})})();`;
       $("bookmarklet").href = bookmarkletCode;
 
+      // Episode state
+      let currentEpisodes = null;
+      let currentStreamId = null;
+      let currentMagnetURI = null;
+      let currentEpisodeIndex = 0;
+
       // History management
       function getHistory() {
-        try {
-          return JSON.parse(localStorage.getItem("lanvideo_history") || "[]");
-        } catch {
-          return [];
-        }
+        try { return JSON.parse(localStorage.getItem("lanvideo_history") || "[]"); } catch { return []; }
       }
       function saveHistory(items) {
-        localStorage.setItem(
-          "lanvideo_history",
-          JSON.stringify(items.slice(0, 20)),
-        );
+        localStorage.setItem("lanvideo_history", JSON.stringify(items.slice(0, 15)));
       }
       function addToHistory(url, title, site, icon) {
         const history = getHistory().filter((h) => h.url !== url);
-        history.unshift({
-          url,
-          title: title || url,
-          site: site || "",
-          icon: icon || "link",
-          time: Date.now(),
-        });
+        history.unshift({ url, title: title || url, site: site || "", icon: icon || "link", time: Date.now() });
         saveHistory(history);
         renderHistory();
       }
@@ -946,18 +1265,14 @@
           return;
         }
         $("historySection").style.display = "block";
-        historyList.innerHTML = history
-          .map(
-            (h, i) => `
-        <div class="history-item" data-url="${encodeURIComponent(h.url)}">
-          <i data-lucide="${h.icon || "link"}"></i>
-          <span class="title">${h.title}</span>
-          ${h.site ? `<span class="site">${h.site}</span>` : ""}
-          <button class="delete" data-idx="${i}"><i data-lucide="x"></i></button>
-        </div>
-      `,
-          )
-          .join("");
+        historyList.innerHTML = history.map((h, i) => `
+          <div class="history-item" data-url="${encodeURIComponent(h.url)}">
+            <i data-lucide="${h.icon || "link"}"></i>
+            <span class="title">${h.title}</span>
+            ${h.site ? `<span class="site">${h.site}</span>` : ""}
+            <button class="delete" data-idx="${i}"><i data-lucide="x"></i></button>
+          </div>
+        `).join("");
         lucide.createIcons();
 
         historyList.querySelectorAll(".history-item").forEach((el) => {
@@ -977,10 +1292,7 @@
           });
         });
       }
-      $("clearHistory").addEventListener("click", () => {
-        saveHistory([]);
-        renderHistory();
-      });
+      $("clearHistory").addEventListener("click", () => { saveHistory([]); renderHistory(); });
       renderHistory();
 
       // TV count polling
@@ -995,7 +1307,7 @@
       setInterval(updateTvCount, 3000);
       updateTvCount();
 
-      // URL detection with debounce
+      // URL detection
       let detectTimeout = null;
       let currentDetection = null;
 
@@ -1006,7 +1318,7 @@
         if (!url) {
           sendBtn.disabled = true;
           detectHint.classList.remove("ready");
-          detectText.textContent = "Paste a URL to detect type";
+          detectText.textContent = "Paste URL to detect type";
           inputIcon.setAttribute("data-lucide", "link");
           lucide.createIcons();
           updatePreview(null);
@@ -1046,8 +1358,7 @@
 
       function updatePreview(url, detection) {
         if (!url) {
-          preview.innerHTML =
-            '<div class="preview-placeholder"><i data-lucide="film"></i><span>No media</span></div>';
+          preview.innerHTML = '<div class="preview-placeholder"><i data-lucide="film"></i><span>No media</span></div>';
           lucide.createIcons();
           return;
         }
@@ -1060,24 +1371,19 @@
           preview.innerHTML = `<video src="${url}" controls muted></video>`;
         } else if (/youtube|youtu\.be/.test(lower)) {
           const id = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/)?.[1];
-          if (id)
-            preview.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>`;
+          if (id) preview.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>`;
         } else if (detection?.type === "torrent") {
-          preview.innerHTML =
-            '<div class="preview-placeholder"><i data-lucide="download"></i><span>Torrent</span></div>';
+          preview.innerHTML = '<div class="preview-placeholder"><i data-lucide="download"></i><span>Torrent</span></div>';
           lucide.createIcons();
         } else {
-          preview.innerHTML =
-            '<div class="preview-placeholder"><i data-lucide="globe"></i><span>Website</span></div>';
+          preview.innerHTML = '<div class="preview-placeholder"><i data-lucide="globe"></i><span>Website</span></div>';
           lucide.createIcons();
         }
       }
 
       // Send to TV
       sendBtn.addEventListener("click", sendToTv);
-      urlInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") sendToTv();
-      });
+      urlInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendToTv(); });
 
       async function sendToTv() {
         const url = urlInput.value.trim();
@@ -1091,8 +1397,9 @@
           let title = currentDetection?.title || url;
           let site = currentDetection?.site || "";
           let icon = currentDetection?.icon || "link";
+          let episodes = null;
+          let streamId = null;
 
-          // For yt-dlp supported sites, create HLS stream
           if (currentDetection?.method === "yt-dlp") {
             status.textContent = "Creating stream via yt-dlp...";
             const r = await fetch("/api/url2hls", {
@@ -1105,16 +1412,8 @@
             urlToSend = d.streamUrl;
             title = d.name || title;
           }
-          // For torrents, use existing torrent2mp4
-          // Variables for episode info
-          let episodes = null;
-          let streamId = null;
 
-          if (
-            currentDetection?.type === "torrent" ||
-            url.startsWith("magnet:") ||
-            url.toLowerCase().endsWith(".torrent")
-          ) {
+          if (currentDetection?.type === "torrent" || url.startsWith("magnet:") || url.toLowerCase().endsWith(".torrent")) {
             status.textContent = "Creating torrent stream...";
             const r = await fetch("/api/torrent2mp4", {
               method: "POST",
@@ -1123,25 +1422,28 @@
             });
             const d = await r.json();
             if (d.error) throw new Error(d.error);
-            urlToSend =
-              d.streamUrl || `/hls/${encodeURIComponent(d.streamId)}.m3u8`;
+            urlToSend = d.streamUrl || `/hls/${encodeURIComponent(d.streamId)}.m3u8`;
             title = d.name || title;
             icon = "download";
 
-            // Store video files for episode switching
             if (d.videoFiles && d.videoFiles.length > 1) {
               episodes = d.videoFiles;
               streamId = d.streamId;
+              currentEpisodes = episodes;
+              currentStreamId = streamId;
+              currentMagnetURI = url;
+              currentEpisodeIndex = 0;
+              renderEpisodes();
             }
           }
 
-          // Push to TV with metadata
           status.textContent = "Sending to TV...";
           const pushPayload = { url: urlToSend, name: title };
           if (episodes) {
             pushPayload.episodes = episodes;
             pushPayload.streamId = streamId;
             pushPayload.currentIndex = 0;
+            pushPayload.magnetURI = url;
           }
 
           const pushRes = await fetch("/tv/push", {
@@ -1164,13 +1466,90 @@
         }
       }
 
-      // Play here
+      // Render episodes
+      function renderEpisodes() {
+        if (!currentEpisodes || currentEpisodes.length <= 1) {
+          episodeSection.classList.remove("active");
+          return;
+        }
+
+        episodeSection.classList.add("active");
+        episodeCount.textContent = `${currentEpisodes.length} episodes`;
+
+        episodeGrid.innerHTML = currentEpisodes.map((ep, i) => {
+          const name = ep.name.replace(/\.(mp4|mkv|avi|webm)$/i, "");
+          const sizeMB = (ep.length / 1024 / 1024).toFixed(0);
+          return `
+            <button class="episode-btn ${i === currentEpisodeIndex ? 'active' : ''}" data-index="${ep.index}">
+              <div class="episode-btn-title">${name}</div>
+              <div class="episode-btn-meta">${sizeMB} MB</div>
+            </button>
+          `;
+        }).join("");
+
+        episodeGrid.querySelectorAll(".episode-btn").forEach((btn) => {
+          btn.addEventListener("click", () => switchEpisode(parseInt(btn.dataset.index)));
+        });
+      }
+
+      // Switch episode
+      async function switchEpisode(fileIndex) {
+        if (!currentMagnetURI) return;
+
+        status.className = "status";
+        status.textContent = "Switching episode...";
+
+        try {
+          const infoHash = currentStreamId.split("_")[1];
+          const r = await fetch("/api/torrent2mp4", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: `magnet:?xt=urn:btih:${infoHash}`, fileIndex }),
+          });
+          const d = await r.json();
+          if (d.error) throw new Error(d.error);
+
+          const urlToSend = d.streamUrl || `/hls/${encodeURIComponent(d.streamId)}.m3u8`;
+          currentEpisodeIndex = currentEpisodes.findIndex(ep => ep.index === fileIndex);
+          currentStreamId = d.streamId;
+
+          // Update active state
+          episodeGrid.querySelectorAll(".episode-btn").forEach((btn, i) => {
+            btn.classList.toggle("active", parseInt(btn.dataset.index) === fileIndex);
+          });
+
+          const pushRes = await fetch("/tv/push", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url: urlToSend,
+              name: d.name,
+              episodes: currentEpisodes,
+              streamId: d.streamId,
+              currentIndex: currentEpisodeIndex,
+              magnetURI: currentMagnetURI,
+            }),
+          });
+          const pushData = await pushRes.json();
+
+          if (pushData.success) {
+            status.className = "status success";
+            status.textContent = `Switched to: ${d.name}`;
+          } else {
+            throw new Error(pushData.error);
+          }
+        } catch (e) {
+          status.className = "status error";
+          status.textContent = "Error: " + e.message;
+        }
+      }
+
+      // Secondary actions
       $("playHereBtn").addEventListener("click", () => {
         const url = urlInput.value.trim();
         if (url) location.href = `/player.html?url=${encodeURIComponent(url)}`;
       });
 
-      // Copy link
       $("copyLinkBtn").addEventListener("click", async () => {
         const url = urlInput.value.trim();
         if (!url) return;
@@ -1179,10 +1558,12 @@
         status.textContent = "Link copied!";
       });
 
-      // Clear TV
       $("clearTvBtn").addEventListener("click", async () => {
         await fetch("/tv/clear", { method: "POST" });
         status.textContent = "TV cleared";
+        currentEpisodes = null;
+        currentStreamId = null;
+        episodeSection.classList.remove("active");
       });
 
       // Remote control
@@ -1198,23 +1579,13 @@
         }
       }
 
-      $("remoteBack30").addEventListener("click", () =>
-        sendTvControl("seekRelative", -30),
-      );
-      $("remoteBack10").addEventListener("click", () =>
-        sendTvControl("seekRelative", -10),
-      );
-      $("remotePlayPause").addEventListener("click", () =>
-        sendTvControl("togglePlay"),
-      );
-      $("remoteForward10").addEventListener("click", () =>
-        sendTvControl("seekRelative", 10),
-      );
-      $("remoteForward30").addEventListener("click", () =>
-        sendTvControl("seekRelative", 30),
-      );
+      $("remoteBack30").addEventListener("click", () => sendTvControl("seekRelative", -30));
+      $("remoteBack10").addEventListener("click", () => sendTvControl("seekRelative", -10));
+      $("remotePlayPause").addEventListener("click", () => sendTvControl("togglePlay"));
+      $("remoteForward10").addEventListener("click", () => sendTvControl("seekRelative", 10));
+      $("remoteForward30").addEventListener("click", () => sendTvControl("seekRelative", 30));
 
-      // Seek bar click
+      // Seek bar
       const remoteSeek = $("remoteSeek");
       const remoteSeekFill = $("remoteSeekFill");
       const remoteCurrentTime = $("remoteCurrentTime");
@@ -1223,13 +1594,177 @@
       const remotePlayIcon = $("remotePlayIcon");
 
       let currentDuration = 0;
+      let isDragging = false;
 
-      remoteSeek.addEventListener("click", (e) => {
+      function handleSeek(e) {
         if (!currentDuration) return;
         const rect = remoteSeek.getBoundingClientRect();
-        const pct = (e.clientX - rect.left) / rect.width;
+        const x = e.touches ? e.touches[0].clientX : e.clientX;
+        const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
         const seekTime = pct * currentDuration;
+        remoteSeekFill.style.width = (pct * 100) + "%";
+        return seekTime;
+      }
+
+      remoteSeek.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        const seekTime = handleSeek(e);
         sendTvControl("seek", seekTime);
+      });
+
+      remoteSeek.addEventListener("touchstart", (e) => {
+        isDragging = true;
+        handleSeek(e);
+      }, { passive: true });
+
+      document.addEventListener("mousemove", (e) => {
+        if (isDragging) handleSeek(e);
+      });
+
+      document.addEventListener("touchmove", (e) => {
+        if (isDragging) handleSeek(e);
+      }, { passive: true });
+
+      document.addEventListener("mouseup", (e) => {
+        if (isDragging) {
+          isDragging = false;
+          const seekTime = handleSeek(e);
+          sendTvControl("seek", seekTime);
+        }
+      });
+
+      document.addEventListener("touchend", (e) => {
+        if (isDragging) {
+          isDragging = false;
+          sendTvControl("seek", handleSeek({ clientX: e.changedTouches[0].clientX }));
+        }
+      });
+
+      // Swipe gesture for seeking
+      const swipeZone = $("swipeZone");
+      const swipeFeedback = $("swipeFeedback");
+      const swipeIndicatorLeft = $("swipeIndicatorLeft");
+      const swipeIndicatorRight = $("swipeIndicatorRight");
+
+      let swipeStartX = 0;
+      let swipeStartTime = 0;
+      let isSwiping = false;
+      let swipeSeekAmount = 0;
+
+      // Sensitivity: pixels per second of seek
+      const SWIPE_SENSITIVITY = 0.5; // 1px = 0.5 seconds
+      const MIN_SWIPE_DISTANCE = 10;
+
+      swipeZone.addEventListener("touchstart", (e) => {
+        swipeStartX = e.touches[0].clientX;
+        swipeStartTime = Date.now();
+        isSwiping = true;
+        swipeSeekAmount = 0;
+        swipeZone.classList.add("swiping");
+      }, { passive: true });
+
+      swipeZone.addEventListener("touchmove", (e) => {
+        if (!isSwiping) return;
+
+        const deltaX = e.touches[0].clientX - swipeStartX;
+
+        if (Math.abs(deltaX) < MIN_SWIPE_DISTANCE) {
+          swipeSeekAmount = 0;
+          swipeFeedback.textContent = "0s";
+          swipeIndicatorLeft.style.width = "0";
+          swipeIndicatorRight.style.width = "0";
+          return;
+        }
+
+        // Calculate seek amount based on swipe distance
+        swipeSeekAmount = Math.round(deltaX * SWIPE_SENSITIVITY);
+
+        // Update feedback
+        const sign = swipeSeekAmount >= 0 ? "+" : "";
+        swipeFeedback.textContent = `${sign}${swipeSeekAmount}s`;
+
+        // Update visual indicators
+        const indicatorWidth = Math.min(Math.abs(deltaX), swipeZone.offsetWidth / 2);
+        if (deltaX < 0) {
+          swipeIndicatorLeft.style.width = indicatorWidth + "px";
+          swipeIndicatorRight.style.width = "0";
+        } else {
+          swipeIndicatorRight.style.width = indicatorWidth + "px";
+          swipeIndicatorLeft.style.width = "0";
+        }
+      }, { passive: true });
+
+      swipeZone.addEventListener("touchend", (e) => {
+        if (!isSwiping) return;
+        isSwiping = false;
+        swipeZone.classList.remove("swiping");
+
+        // Reset indicators
+        swipeIndicatorLeft.style.width = "0";
+        swipeIndicatorRight.style.width = "0";
+
+        // Apply seek if significant
+        if (Math.abs(swipeSeekAmount) >= 1) {
+          sendTvControl("seekRelative", swipeSeekAmount);
+
+          // Brief visual feedback
+          swipeFeedback.style.opacity = "1";
+          setTimeout(() => {
+            swipeFeedback.style.opacity = "0";
+          }, 500);
+        }
+
+        swipeSeekAmount = 0;
+      });
+
+      // Mouse support for desktop testing
+      swipeZone.addEventListener("mousedown", (e) => {
+        swipeStartX = e.clientX;
+        isSwiping = true;
+        swipeSeekAmount = 0;
+        swipeZone.classList.add("swiping");
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (!isSwiping || !swipeZone.classList.contains("swiping")) return;
+
+        const deltaX = e.clientX - swipeStartX;
+
+        if (Math.abs(deltaX) < MIN_SWIPE_DISTANCE) {
+          swipeSeekAmount = 0;
+          swipeFeedback.textContent = "0s";
+          swipeIndicatorLeft.style.width = "0";
+          swipeIndicatorRight.style.width = "0";
+          return;
+        }
+
+        swipeSeekAmount = Math.round(deltaX * SWIPE_SENSITIVITY);
+        const sign = swipeSeekAmount >= 0 ? "+" : "";
+        swipeFeedback.textContent = `${sign}${swipeSeekAmount}s`;
+
+        const indicatorWidth = Math.min(Math.abs(deltaX), swipeZone.offsetWidth / 2);
+        if (deltaX < 0) {
+          swipeIndicatorLeft.style.width = indicatorWidth + "px";
+          swipeIndicatorRight.style.width = "0";
+        } else {
+          swipeIndicatorRight.style.width = indicatorWidth + "px";
+          swipeIndicatorLeft.style.width = "0";
+        }
+      });
+
+      document.addEventListener("mouseup", (e) => {
+        if (!isSwiping || !swipeZone.classList.contains("swiping")) return;
+        isSwiping = false;
+        swipeZone.classList.remove("swiping");
+
+        swipeIndicatorLeft.style.width = "0";
+        swipeIndicatorRight.style.width = "0";
+
+        if (Math.abs(swipeSeekAmount) >= 1) {
+          sendTvControl("seekRelative", swipeSeekAmount);
+        }
+
+        swipeSeekAmount = 0;
       });
 
       function formatTime(s) {
@@ -1237,9 +1772,7 @@
         const h = Math.floor(s / 3600);
         const m = Math.floor((s % 3600) / 60);
         const sec = Math.floor(s % 60);
-        if (h > 0) {
-          return `${h}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
-        }
+        if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
         return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
       }
 
@@ -1252,25 +1785,35 @@
             const state = JSON.parse(e.data);
             currentDuration = state.duration || 0;
 
-            remoteCurrentTime.textContent = formatTime(state.currentTime);
-            remoteDuration.textContent = formatTime(state.duration);
-
-            const pct = state.duration
-              ? (state.currentTime / state.duration) * 100
-              : 0;
-            remoteSeekFill.style.width = pct + "%";
-
-            if (state.mediaName) {
-              remoteMedia.textContent = state.mediaName;
-            } else {
-              remoteMedia.textContent = "Нічого не грає";
+            if (!isDragging) {
+              remoteCurrentTime.textContent = formatTime(state.currentTime);
+              remoteDuration.textContent = formatTime(state.duration);
+              const pct = state.duration ? (state.currentTime / state.duration) * 100 : 0;
+              remoteSeekFill.style.width = pct + "%";
             }
 
-            remotePlayIcon.setAttribute(
-              "data-lucide",
-              state.paused ? "play" : "pause",
-            );
+            remoteMedia.textContent = state.mediaName || "Nothing playing";
+            remotePlayIcon.setAttribute("data-lucide", state.paused ? "play" : "pause");
             lucide.createIcons();
+
+            // Update episodes from TV state
+            if (state.episodes && state.episodes.length > 1) {
+              if (!currentEpisodes || JSON.stringify(currentEpisodes) !== JSON.stringify(state.episodes)) {
+                currentEpisodes = state.episodes;
+                currentStreamId = state.streamId;
+                currentMagnetURI = state.magnetURI;
+                currentEpisodeIndex = state.currentIndex || 0;
+                renderEpisodes();
+              }
+              // Update active episode
+              if (state.currentIndex !== undefined && state.currentIndex !== currentEpisodeIndex) {
+                currentEpisodeIndex = state.currentIndex;
+                episodeGrid.querySelectorAll(".episode-btn").forEach((btn) => {
+                  const idx = currentEpisodes.findIndex(ep => ep.index === parseInt(btn.dataset.index));
+                  btn.classList.toggle("active", idx === currentEpisodeIndex);
+                });
+              }
+            }
           } catch (err) {
             console.error("Remote SSE error:", err);
           }
@@ -1284,72 +1827,49 @@
 
       connectRemoteSSE();
 
-      // Search functionality
+      // Search
       let currentSearchSource = "youtube";
       let searchTimeout = null;
 
-      // Open search modal
       $("searchBtn").addEventListener("click", () => {
         searchModal.classList.add("active");
         searchInput.focus();
-        lucide.createIcons();
       });
 
-      // Close search modal
-      $("closeSearch").addEventListener("click", () => {
-        searchModal.classList.remove("active");
-      });
+      $("closeSearch").addEventListener("click", () => searchModal.classList.remove("active"));
 
-      // Close on background click
       searchModal.addEventListener("click", (e) => {
-        if (e.target === searchModal) {
+        if (e.target === searchModal || e.target.classList.contains("modal-content") === false && e.target.closest(".modal-content") === null) {
           searchModal.classList.remove("active");
         }
       });
 
-      // Close on Escape
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && searchModal.classList.contains("active")) {
           searchModal.classList.remove("active");
         }
       });
 
-      // Tab switching
       document.querySelectorAll(".modal-tab").forEach((tab) => {
         tab.addEventListener("click", () => {
-          document
-            .querySelectorAll(".modal-tab")
-            .forEach((t) => t.classList.remove("active"));
+          document.querySelectorAll(".modal-tab").forEach((t) => t.classList.remove("active"));
           tab.classList.add("active");
           currentSearchSource = tab.dataset.source;
-
-          // Re-search with new source if there's a query
-          if (searchInput.value.trim()) {
-            performSearch(searchInput.value.trim());
-          }
+          if (searchInput.value.trim()) performSearch(searchInput.value.trim());
         });
       });
 
-      // Search input handler with debounce
       searchInput.addEventListener("input", () => {
         const query = searchInput.value.trim();
         clearTimeout(searchTimeout);
-
         if (!query) {
-          searchResultsContainer.innerHTML =
-            '<div class="search-empty">Введіть запит для пошуку</div>';
+          searchResultsContainer.innerHTML = '<div class="search-empty">Enter a search query</div>';
           return;
         }
-
-        searchResultsContainer.innerHTML =
-          '<div class="search-loading">Шукаємо...</div>';
-
-        searchTimeout = setTimeout(() => {
-          performSearch(query);
-        }, 500);
+        searchResultsContainer.innerHTML = '<div class="search-loading">Searching...</div>';
+        searchTimeout = setTimeout(() => performSearch(query), 500);
       });
 
-      // Search on Enter
       searchInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
           clearTimeout(searchTimeout);
@@ -1358,127 +1878,99 @@
         }
       });
 
-      // Perform search
       async function performSearch(query) {
         try {
-          const endpoint =
-            currentSearchSource === "youtube"
-              ? `/api/search/youtube?q=${encodeURIComponent(query)}`
-              : `/api/search/torrents?q=${encodeURIComponent(query)}`;
+          const endpoint = currentSearchSource === "youtube"
+            ? `/api/search/youtube?q=${encodeURIComponent(query)}`
+            : `/api/search/torrents?q=${encodeURIComponent(query)}`;
 
           const response = await fetch(endpoint);
           const data = await response.json();
 
           if (data.error) {
-            searchResultsContainer.innerHTML = `<div class="search-empty">Помилка: ${data.error}</div>`;
+            searchResultsContainer.innerHTML = `<div class="search-empty">Error: ${data.error}</div>`;
             return;
           }
 
           if (!data.results || data.results.length === 0) {
-            searchResultsContainer.innerHTML =
-              '<div class="search-empty">Нічого не знайдено</div>';
+            searchResultsContainer.innerHTML = '<div class="search-empty">No results found</div>';
             return;
           }
 
-          // Render results
           renderSearchResults(data.results);
         } catch (err) {
-          searchResultsContainer.innerHTML = `<div class="search-empty">Помилка пошуку: ${err.message}</div>`;
+          searchResultsContainer.innerHTML = `<div class="search-empty">Search error: ${err.message}</div>`;
         }
       }
 
-      // Render search results
       function renderSearchResults(results) {
-        const html = results
-          .map((r) => {
-            let meta = "";
+        const html = results.map((r) => {
+          let meta = "";
+          if (currentSearchSource === "youtube") {
+            const duration = r.duration ? formatDuration(r.duration) : "";
+            const views = r.views ? formatViews(r.views) : "";
+            meta = [r.channel, views, duration].filter(Boolean).join(" • ");
+          } else {
+            const parts = [];
+            if (r.size) parts.push(r.size);
+            if (r.seeders !== undefined) parts.push(`${r.seeders} seeds`);
+            meta = parts.join(" • ");
+          }
 
-            // YouTube metadata
-            if (currentSearchSource === "youtube") {
-              const duration = r.duration ? formatDuration(r.duration) : "";
-              const views = r.views ? formatViews(r.views) : "";
-              meta = [r.channel, views, duration].filter(Boolean).join(" • ");
-            }
-            // Torrent metadata
-            else {
-              const parts = [];
-              if (r.source) parts.push(`📦 ${r.source}`);
-              if (r.size) parts.push(`💾 ${r.size}`);
-              if (r.seeders !== undefined) {
-                const seedColor =
-                  r.seeders > 50 ? "🟢" : r.seeders > 10 ? "🟡" : "🔴";
-                parts.push(`${seedColor} ${r.seeders} seeders`);
-              }
-              if (r.rating) parts.push(`⭐ ${r.rating}`);
-              meta = parts.join(" • ");
-            }
+          const url = r.url || r.magnetLink || "";
+          const thumbContent = r.thumbnail
+            ? `<img src="${r.thumbnail}" alt="">`
+            : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--gray-600);font-size:24px;">🎬</div>';
 
-            const url = r.url || r.magnetLink || "";
-            const thumbContent = r.thumbnail
-              ? `<img src="${r.thumbnail}" alt="${r.title}">`
-              : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--gray-600);font-size:34px;">🎬</div>';
-
-            return `
+          return `
             <div class="search-result" data-url="${encodeURIComponent(url)}">
-              <div class="search-result-thumb">
-                ${thumbContent}
-              </div>
+              <div class="search-result-thumb">${thumbContent}</div>
               <div class="search-result-info">
                 <div class="search-result-title">${escapeHtml(r.title)}</div>
                 ${meta ? `<div class="search-result-meta">${meta}</div>` : ""}
               </div>
             </div>
           `;
-          })
-          .join("");
+        }).join("");
 
         searchResultsContainer.innerHTML = `<div class="search-results">${html}</div>`;
 
-        // Add click handlers
-        searchResultsContainer
-          .querySelectorAll(".search-result")
-          .forEach((el) => {
-            el.addEventListener("click", () => {
-              const url = decodeURIComponent(el.dataset.url);
-              urlInput.value = url;
-              urlInput.dispatchEvent(new Event("input"));
-              searchModal.classList.remove("active");
-            });
+        searchResultsContainer.querySelectorAll(".search-result").forEach((el) => {
+          el.addEventListener("click", () => {
+            const url = decodeURIComponent(el.dataset.url);
+            urlInput.value = url;
+            urlInput.dispatchEvent(new Event("input"));
+            searchModal.classList.remove("active");
           });
+        });
       }
 
-      // Helper: format duration
       function formatDuration(seconds) {
         if (!seconds) return "";
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
         const s = Math.floor(seconds % 60);
-        if (h > 0)
-          return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+        if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
         return `${m}:${String(s).padStart(2, "0")}`;
       }
 
-      // Helper: format views
       function formatViews(views) {
         if (!views) return "";
-        if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M views`;
-        if (views >= 1000) return `${(views / 1000).toFixed(1)}K views`;
-        return `${views} views`;
+        if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M`;
+        if (views >= 1000) return `${(views / 1000).toFixed(0)}K`;
+        return `${views}`;
       }
 
-      // Helper: escape HTML
       function escapeHtml(text) {
         const div = document.createElement("div");
         div.textContent = text;
         return div.innerHTML;
       }
 
-      // Drag & drop for torrent files
+      // Drag & drop
       document.addEventListener("dragenter", (e) => {
         e.preventDefault();
-        if (e.dataTransfer.types.includes("Files")) {
-          dropZone.classList.add("active");
-        }
+        if (e.dataTransfer.types.includes("Files")) dropZone.classList.add("active");
       });
       dropZone.addEventListener("dragleave", (e) => {
         if (e.target === dropZone) dropZone.classList.remove("active");
@@ -1487,24 +1979,398 @@
       dropZone.addEventListener("drop", async (e) => {
         e.preventDefault();
         dropZone.classList.remove("active");
-
         const file = e.dataTransfer.files[0];
         if (!file || !file.name.endsWith(".torrent")) {
           status.textContent = "Only .torrent files supported";
           return;
         }
-
-        status.textContent = "Uploading torrent...";
-
-        // Read file and convert to base64 data URI for processing
-        const reader = new FileReader();
-        reader.onload = async () => {
-          // For now, we can't directly upload - user needs to use magnet or URL
-          // Show file name and suggest using magnet link
-          status.textContent = `Torrent: ${file.name} - Please use magnet link or torrent URL instead`;
-        };
-        reader.readAsDataURL(file);
+        status.textContent = `Torrent: ${file.name} - Please use magnet link`;
       });
+
+      // ============== PWA FEATURES ==============
+
+      // Install prompt
+      let deferredPrompt = null;
+      const installBanner = document.createElement('div');
+      installBanner.className = 'install-banner';
+      installBanner.innerHTML = `
+        <div class="install-content">
+          <i data-lucide="download"></i>
+          <div class="install-text">
+            <strong>Install LAN Video</strong>
+            <span>Add to home screen for the best experience</span>
+          </div>
+        </div>
+        <div class="install-actions">
+          <button class="install-btn" id="installBtn">Install</button>
+          <button class="install-dismiss" id="dismissInstall"><i data-lucide="x"></i></button>
+        </div>
+      `;
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+
+        // Show install banner if not dismissed before
+        if (!localStorage.getItem('pwa-install-dismissed')) {
+          document.body.appendChild(installBanner);
+          lucide.createIcons();
+
+          document.getElementById('installBtn').addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log('Install outcome:', outcome);
+            deferredPrompt = null;
+            installBanner.remove();
+          });
+
+          document.getElementById('dismissInstall').addEventListener('click', () => {
+            localStorage.setItem('pwa-install-dismissed', Date.now());
+            installBanner.remove();
+          });
+        }
+      });
+
+      window.addEventListener('appinstalled', () => {
+        console.log('PWA installed');
+        installBanner.remove();
+        deferredPrompt = null;
+      });
+
+      // Offline indicator
+      const offlineIndicator = document.createElement('div');
+      offlineIndicator.className = 'offline-indicator';
+      offlineIndicator.innerHTML = '<i data-lucide="wifi-off"></i> Offline';
+
+      function updateOnlineStatus() {
+        if (!navigator.onLine) {
+          document.body.appendChild(offlineIndicator);
+          lucide.createIcons();
+          sendBtn.disabled = true;
+        } else {
+          offlineIndicator.remove();
+          sendBtn.disabled = !urlInput.value.trim();
+        }
+      }
+
+      window.addEventListener('online', updateOnlineStatus);
+      window.addEventListener('offline', updateOnlineStatus);
+      updateOnlineStatus();
+
+      // Badge API for TV count
+      async function updateBadge(count) {
+        if ('setAppBadge' in navigator) {
+          try {
+            if (count > 0) {
+              await navigator.setAppBadge(count);
+            } else {
+              await navigator.clearAppBadge();
+            }
+          } catch (e) {
+            console.log('Badge API error:', e);
+          }
+        }
+      }
+
+      // Update badge when TV count changes
+      const originalUpdateTvCount = updateTvCount;
+      updateTvCount = async function() {
+        try {
+          const r = await fetch("/tv/clients");
+          const d = await r.json();
+          tvCount.textContent = d.clients || 0;
+          tvCount.classList.toggle("zero", d.clients === 0);
+          updateBadge(d.clients || 0);
+        } catch {}
+      };
+
+      // Handle shared URLs (Web Share Target API)
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedUrl = urlParams.get('shared') || urlParams.get('url') || urlParams.get('text');
+      const sharedMagnet = urlParams.get('magnet');
+      const sharedVideo = urlParams.get('video');
+
+      if (sharedUrl || sharedMagnet || sharedVideo) {
+        const urlToUse = sharedUrl || sharedMagnet || sharedVideo;
+        urlInput.value = decodeURIComponent(urlToUse);
+        urlInput.dispatchEvent(new Event('input'));
+        // Clean URL
+        window.history.replaceState({}, '', '/');
+      }
+
+      // Handle action shortcuts
+      const action = urlParams.get('action');
+      if (action === 'search') {
+        setTimeout(() => {
+          searchModal.classList.add('active');
+          searchInput.focus();
+        }, 500);
+      } else if (action === 'remote') {
+        setTimeout(() => {
+          document.getElementById('remoteControl').scrollIntoView({ behavior: 'smooth' });
+        }, 500);
+      }
+
+      // Push notification subscription
+      async function subscribeToPush() {
+        if (!('PushManager' in window)) return null;
+
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          let subscription = await registration.pushManager.getSubscription();
+
+          if (!subscription) {
+            // Get VAPID public key from server
+            const response = await fetch('/api/push/vapid-public-key');
+            if (!response.ok) return null;
+
+            const { publicKey } = await response.json();
+            const convertedKey = urlBase64ToUint8Array(publicKey);
+
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: convertedKey
+            });
+
+            // Send subscription to server
+            await fetch('/api/push/subscribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(subscription)
+            });
+          }
+
+          return subscription;
+        } catch (e) {
+          console.log('Push subscription error:', e);
+          return null;
+        }
+      }
+
+      function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+      }
+
+      // Request notification permission on first interaction
+      let notificationRequested = false;
+      document.addEventListener('click', async () => {
+        if (notificationRequested) return;
+        notificationRequested = true;
+
+        if ('Notification' in window && Notification.permission === 'default') {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            subscribeToPush();
+          }
+        }
+      }, { once: true });
+
+      // Service Worker registration with update handling
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+          .then((reg) => {
+            console.log('SW registered:', reg.scope);
+
+            // Check for updates
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New version available
+                  showUpdateNotification();
+                }
+              });
+            });
+          })
+          .catch((err) => console.log('SW registration failed:', err));
+
+        // Handle SW messages
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data.type === 'notification-click') {
+            // Handle notification click data
+            console.log('Notification clicked:', event.data);
+          }
+        });
+      }
+
+      function showUpdateNotification() {
+        const updateBanner = document.createElement('div');
+        updateBanner.className = 'update-banner';
+        updateBanner.innerHTML = `
+          <span>New version available!</span>
+          <button onclick="location.reload()">Update</button>
+        `;
+        document.body.appendChild(updateBanner);
+      }
+
+      // Background sync for offline sends
+      async function queueForSync(payload) {
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+          const reg = await navigator.serviceWorker.ready;
+
+          // Store request in SW
+          navigator.serviceWorker.controller?.postMessage({
+            type: 'QUEUE_REQUEST',
+            payload
+          });
+
+          await reg.sync.register('send-to-tv');
+          return true;
+        }
+        return false;
+      }
+
+      // Periodic background sync for TV status
+      async function registerPeriodicSync() {
+        if ('serviceWorker' in navigator && 'periodicSync' in ServiceWorkerRegistration.prototype) {
+          try {
+            const reg = await navigator.serviceWorker.ready;
+            const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+
+            if (status.state === 'granted') {
+              await reg.periodicSync.register('update-tv-status', {
+                minInterval: 60 * 1000 // 1 minute
+              });
+              console.log('Periodic sync registered');
+            }
+          } catch (e) {
+            console.log('Periodic sync not available:', e);
+          }
+        }
+      }
+
+      registerPeriodicSync();
     </script>
+
+    <style>
+      .install-banner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--gray-900);
+        border-top: 1px solid var(--gray-700);
+        padding: 16px 20px;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        z-index: 1000;
+        animation: slideUp 0.3s ease;
+      }
+      @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
+      .install-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .install-content i {
+        width: 32px;
+        height: 32px;
+        color: var(--accent);
+      }
+      .install-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .install-text strong {
+        font-size: 14px;
+      }
+      .install-text span {
+        font-size: 12px;
+        color: var(--gray-400);
+      }
+      .install-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .install-btn {
+        padding: 8px 16px;
+        background: var(--accent);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .install-dismiss {
+        width: 32px;
+        height: 32px;
+        background: transparent;
+        border: none;
+        color: var(--gray-500);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .install-dismiss i {
+        width: 20px;
+        height: 20px;
+      }
+
+      .offline-indicator {
+        position: fixed;
+        top: env(safe-area-inset-top, 0px);
+        left: 0;
+        right: 0;
+        background: var(--accent);
+        color: white;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        z-index: 1001;
+      }
+      .offline-indicator i {
+        width: 16px;
+        height: 16px;
+      }
+
+      .update-banner {
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--success);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 1002;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      }
+      .update-banner button {
+        padding: 6px 12px;
+        background: white;
+        color: var(--success);
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
   </body>
 </html>

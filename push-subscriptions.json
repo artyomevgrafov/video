@@ -1,0 +1,17 @@
+[
+  {
+    "endpoint": "https://fcm.googleapis.com/fcm/send/f1onwcKn9ws:APA91bEph2vJ1uzZ_clyEcWLX2VQZmbe1iTWNn062U61oZbj66H6fVGFXCQr0CeIVN7P0EtfH0yqhPqi1wtDTsRIsKdHl9psoKLmVZL498bNy8mU2vEWmU4eOQJEvMq5LTxqlJF2oYOr",
+    "expirationTime": null,
+    "keys": {
+      "p256dh": "BCULD68ltFZYided_aUni7ftVEfYPbBNTyI2YYkeF3_ZcpO35U1WM8BpzcqKPxk5rrpIKI4Ns7Txj3U1IjVI4E8",
+      "auth": "ZbygE9CuAbkdCsw34So9pw"
+    }
+  },
+  {
+    "endpoint": "https://web.push.apple.com/QIGCinVvuh1H4VoainklGkgjxp8mitH5mWTWK5PSoK-8AJtGQgB3vSP_RG88OsTn1TH-4wzTs7XFVAkXu9exxCUkOTZuY5osQKe-nTixZ-rsbEABzi3SmWOADE5bqX1WjGiGRgpsuIxvrEealsE2IpfJ2Xqc8a3ZIdE11-8Liwc",
+    "keys": {
+      "p256dh": "BEMtE7pz2rigbKBMohJh6xWJK1p2nR4z4vDUvIRNX7-OkKwtA6uqOMPeMs5hkcEQbld_nX4mIqXRwwgftjmNIao",
+      "auth": "9MM6tEILtPhNxZwQ6qCEYQ"
+    }
+  }
+]

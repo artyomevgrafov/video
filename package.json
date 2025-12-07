@@ -24,6 +24,7 @@
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "torrent-stream": "^1.2.1",
+    "web-push": "^3.6.7",
     "webtorrent": "^2.8.5"
   }
 }

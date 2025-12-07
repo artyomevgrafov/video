@@ -86,6 +86,7 @@ const HOST = process.env.HOST || "0.0.0.0";
 app.disable("etag");
 
 app.use(cors());
+app.use(express.json());
 app.use(express.static("public"));
 app.use(
   morgan(
@@ -1041,7 +1042,27 @@ async function restoreTorrentStreams() {
 
   console.log(`Found ${states.length} saved torrent state(s) to restore`);
 
+  // Group by infoHash - only restore ONE stream per torrent (the most recent)
+  const byInfoHash = new Map();
   for (const state of states) {
+    const { infoHash, savedAt } = state;
+    if (!infoHash) continue;
+    const existing = byInfoHash.get(infoHash);
+    if (!existing || savedAt > existing.savedAt) {
+      byInfoHash.set(infoHash, state);
+    }
+  }
+
+  // Remove old states for same torrent
+  for (const state of states) {
+    const best = byInfoHash.get(state.infoHash);
+    if (best && best.streamId !== state.streamId) {
+      console.log(`Removing old state for ${state.streamId} (newer: ${best.streamId})`);
+      removeTorrentState(state.streamId);
+    }
+  }
+
+  for (const state of byInfoHash.values()) {
     const { magnetURI, fileIndex, streamId, infoHash } = state;
     if (!magnetURI || !streamId) continue;
 
@@ -1181,6 +1202,41 @@ let playerState = {
 // Watch progress storage (streamId -> { position, duration, updatedAt })
 const watchProgress = new Map();
 
+// TV state persistence
+const TV_STATE_FILE = path.join(__dirname, "tv-state.json");
+
+function saveTvState() {
+  try {
+    if (currentPlayUrl && typeof currentPlayUrl === "object") {
+      fs.writeFileSync(TV_STATE_FILE, JSON.stringify(currentPlayUrl, null, 2));
+    }
+  } catch (err) {
+    console.error("Failed to save TV state:", err.message);
+  }
+}
+
+function loadTvState() {
+  try {
+    if (fs.existsSync(TV_STATE_FILE)) {
+      const data = JSON.parse(fs.readFileSync(TV_STATE_FILE, "utf8"));
+      // Only restore if less than 24 hours old
+      if (data.savedAt && Date.now() - data.savedAt < 24 * 60 * 60 * 1000) {
+        return data;
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load TV state:", err.message);
+  }
+  return null;
+}
+
+// Load TV state on startup
+const savedTvState = loadTvState();
+if (savedTvState) {
+  currentPlayUrl = savedTvState;
+  console.log("Restored TV state:", savedTvState.name || savedTvState.url);
+}
+
 // SSE endpoint for TV to listen for new URLs
 app.get("/tv/listen", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
@@ -1213,15 +1269,26 @@ app.get("/tv/clients", (req, res) => {
 
 // Endpoint to push URL to all connected TVs
 app.post("/tv/push", express.json(), (req, res) => {
-  const { url, name, episodes, streamId, currentIndex } = req.body;
+  const { url, name, episodes, streamId, currentIndex, magnetURI } = req.body;
   if (!url) return res.status(400).json({ error: "Missing url" });
 
-  // Store full metadata
-  currentPlayUrl = { url, name, episodes, streamId, currentIndex };
+  // Store full metadata with timestamp
+  currentPlayUrl = {
+    url,
+    name,
+    episodes,
+    streamId,
+    currentIndex,
+    magnetURI,
+    savedAt: Date.now()
+  };
   console.log(`Pushing URL to ${sseClients.length} TV(s): ${url}`);
 
+  // Save to disk for persistence
+  saveTvState();
+
   // Broadcast to all SSE clients with metadata
-  const payload = { url, name, episodes, streamId, currentIndex };
+  const payload = { url, name, episodes, streamId, currentIndex, magnetURI };
   sseClients.forEach((client) => {
     client.write(`data: ${JSON.stringify(payload)}\n\n`);
   });
@@ -1548,12 +1615,14 @@ app.post("/api/torrent2mp4", express.json(), async (req, res) => {
     for (const [sid, stream] of activeStreams.entries()) {
       if (sid.startsWith(`ts_${engine.infoHash}_`) && sid !== streamId) {
         console.log(`Stopping old episode stream: ${sid}`);
-        if (stream.ffmpeg) {
-          stream.ffmpeg.kill("SIGKILL");
+        // Kill ffmpeg process
+        if (stream.ffmpegProcess) {
+          try {
+            stream.ffmpegProcess.kill("SIGKILL");
+          } catch (e) { /* ignore */ }
         }
-        if (stream.torrentStream) {
-          stream.torrentStream.destroy();
-        }
+        // Remove from state file
+        removeTorrentState(sid);
         activeStreams.delete(sid);
       }
     }
@@ -1612,7 +1681,23 @@ app.post("/api/torrent2mp4", express.json(), async (req, res) => {
     let lastLogTime = Date.now();
     let isPaused = false;
 
-    const fileStream = selectedFile.createReadStream();
+    // Check if file is already fully downloaded - read from disk directly
+    const downloadedPath = path.join(__dirname, "downloads", engine.torrent.name, selectedFile.name);
+    let fileStream;
+
+    if (fs.existsSync(downloadedPath)) {
+      const stats = fs.statSync(downloadedPath);
+      if (stats.size === selectedFile.length) {
+        console.log(`File already downloaded, reading from disk: ${downloadedPath}`);
+        fileStream = fs.createReadStream(downloadedPath);
+      } else {
+        console.log(`File partially downloaded (${stats.size}/${selectedFile.length}), using torrent stream`);
+        fileStream = selectedFile.createReadStream();
+      }
+    } else {
+      console.log(`File not on disk, using torrent stream`);
+      fileStream = selectedFile.createReadStream();
+    }
 
     // Контроль потоку: пауза коли ffmpeg не встигає
     fileStream.on("data", (chunk) => {
@@ -1656,6 +1741,17 @@ app.post("/api/torrent2mp4", express.json(), async (req, res) => {
       if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
         ffmpeg.stdin.end();
       }
+      // Add ENDLIST after ffmpeg finishes (wait a bit for final segments)
+      setTimeout(() => {
+        const playlistPath = path.join(hlsDir, "index.m3u8");
+        if (fs.existsSync(playlistPath)) {
+          const content = fs.readFileSync(playlistPath, "utf8");
+          if (!content.includes("#EXT-X-ENDLIST")) {
+            fs.appendFileSync(playlistPath, "\n#EXT-X-ENDLIST\n");
+            console.log(`Added ENDLIST to ${streamId}`);
+          }
+        }
+      }, 3000);
     });
 
     fileStream.on("error", (err) => {
@@ -1973,6 +2069,142 @@ app.get("/hls/:id.m3u8", async (req, res) => {
 
 // --- Torrent to mp4 streaming endpoint ---
 // (Deprecated duplicate block removed: streaming served via HLS endpoint above)
+
+// ============== PUSH NOTIFICATIONS ==============
+const webpush = require("web-push");
+
+// Generate VAPID keys once and store them
+const VAPID_KEYS_FILE = path.join(__dirname, "vapid-keys.json");
+let vapidKeys;
+
+if (fs.existsSync(VAPID_KEYS_FILE)) {
+  vapidKeys = JSON.parse(fs.readFileSync(VAPID_KEYS_FILE, "utf8"));
+} else {
+  vapidKeys = webpush.generateVAPIDKeys();
+  fs.writeFileSync(VAPID_KEYS_FILE, JSON.stringify(vapidKeys, null, 2));
+  console.log("Generated new VAPID keys");
+}
+
+webpush.setVapidDetails(
+  "mailto:admin@lanvideo.local",
+  vapidKeys.publicKey,
+  vapidKeys.privateKey
+);
+
+// Store push subscriptions
+const PUSH_SUBS_FILE = path.join(__dirname, "push-subscriptions.json");
+let pushSubscriptions = [];
+
+if (fs.existsSync(PUSH_SUBS_FILE)) {
+  try {
+    pushSubscriptions = JSON.parse(fs.readFileSync(PUSH_SUBS_FILE, "utf8"));
+  } catch (e) {
+    pushSubscriptions = [];
+  }
+}
+
+function savePushSubscriptions() {
+  fs.writeFileSync(PUSH_SUBS_FILE, JSON.stringify(pushSubscriptions, null, 2));
+}
+
+// Get VAPID public key
+app.get("/api/push/vapid-public-key", (req, res) => {
+  res.json({ publicKey: vapidKeys.publicKey });
+});
+
+// Subscribe to push
+app.post("/api/push/subscribe", (req, res) => {
+  const subscription = req.body;
+
+  if (!subscription || !subscription.endpoint) {
+    return res.status(400).json({ error: "Invalid subscription" });
+  }
+
+  // Check if already subscribed
+  const exists = pushSubscriptions.some(s => s.endpoint === subscription.endpoint);
+  if (!exists) {
+    pushSubscriptions.push(subscription);
+    savePushSubscriptions();
+    console.log("New push subscription added");
+  }
+
+  res.json({ success: true });
+});
+
+// Unsubscribe from push
+app.post("/api/push/unsubscribe", (req, res) => {
+  const { endpoint } = req.body;
+
+  pushSubscriptions = pushSubscriptions.filter(s => s.endpoint !== endpoint);
+  savePushSubscriptions();
+
+  res.json({ success: true });
+});
+
+// Send push notification to all subscribers
+async function sendPushNotification(payload) {
+  const notification = JSON.stringify(payload);
+  const results = [];
+
+  for (const subscription of pushSubscriptions) {
+    try {
+      await webpush.sendNotification(subscription, notification);
+      results.push({ success: true, endpoint: subscription.endpoint });
+    } catch (error) {
+      console.error("Push send error:", error.message);
+
+      // Remove invalid subscriptions
+      if (error.statusCode === 404 || error.statusCode === 410) {
+        pushSubscriptions = pushSubscriptions.filter(s => s.endpoint !== subscription.endpoint);
+        savePushSubscriptions();
+      }
+
+      results.push({ success: false, endpoint: subscription.endpoint, error: error.message });
+    }
+  }
+
+  return results;
+}
+
+// API to trigger push notification (for testing or server events)
+app.post("/api/push/send", async (req, res) => {
+  const { title, body, data } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ error: "Title required" });
+  }
+
+  const results = await sendPushNotification({
+    title,
+    body: body || "",
+    data: data || {},
+    tag: "lan-video-notification"
+  });
+
+  res.json({ sent: results.length, results });
+});
+
+// Notify when video is sent to TV
+const originalTvPush = "/tv/push";
+// Hook into TV push to send notifications
+app.use((req, res, next) => {
+  if (req.method === "POST" && req.path === "/tv/push") {
+    const originalJson = res.json.bind(res);
+    res.json = function(data) {
+      if (data.success && pushSubscriptions.length > 0) {
+        const name = req.body?.name || "Video";
+        sendPushNotification({
+          title: "Now Playing on TV",
+          body: name,
+          data: { url: req.body?.url },
+          tag: "tv-playing"
+        }).catch(e => console.error("Push notification error:", e));
+      }
+      return originalJson(data);
+    };
+  }
+  next();
+});
 
 app.listen(PORT, HOST, async () => {
   console.log(`Server running on http://${HOST}:${PORT}`);

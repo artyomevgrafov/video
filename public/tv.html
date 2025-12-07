@@ -573,6 +573,7 @@
       let currentEpisodes = [];
       let currentEpisodeIndex = 0;
       let currentStreamId = null;
+      let currentMagnetURI = null;
 
       // SSE connection for receiving URLs
       function connectSSE() {
@@ -677,13 +678,25 @@
           currentEpisodes = metadata.episodes;
           currentEpisodeIndex = metadata.currentIndex || 0;
           currentStreamId = metadata.streamId;
+          currentMagnetURI = metadata.magnetURI || null;
           episodeToggle.classList.add("has-episodes");
           episodePanelTitle.textContent = metadata.name || "Епізоди";
           episodePanelSubtitle.textContent = `${currentEpisodes.length} файлів`;
           renderEpisodeList();
+
+          // Save to localStorage for page reload recovery
+          localStorage.setItem('tv-episodes', JSON.stringify({
+            episodes: currentEpisodes,
+            index: currentEpisodeIndex,
+            streamId: currentStreamId,
+            magnetURI: currentMagnetURI,
+            name: metadata.name,
+            savedAt: Date.now()
+          }));
         } else {
           currentEpisodes = [];
           episodeToggle.classList.remove("has-episodes");
+          localStorage.removeItem('tv-episodes');
         }
 
         const lower = url.toLowerCase();
@@ -1180,6 +1193,16 @@
 
           renderEpisodeList(); // Update active state
           episodePanel.classList.remove("active");
+
+          // Update localStorage with new episode index
+          const savedData = localStorage.getItem('tv-episodes');
+          if (savedData) {
+            const parsed = JSON.parse(savedData);
+            parsed.index = currentEpisodeIndex;
+            parsed.streamId = currentStreamId;
+            parsed.savedAt = Date.now();
+            localStorage.setItem('tv-episodes', JSON.stringify(parsed));
+          }
         } catch (err) {
           statusText.textContent = "Помилка: " + err.message;
           hideLoading();
@@ -1207,8 +1230,40 @@
         showControls();
       });
 
+      // Restore episodes from localStorage (survives page reload)
+      function restoreEpisodesFromStorage() {
+        try {
+          const saved = localStorage.getItem('tv-episodes');
+          if (saved) {
+            const data = JSON.parse(saved);
+            // Only restore if less than 12 hours old
+            if (data.savedAt && Date.now() - data.savedAt < 12 * 60 * 60 * 1000) {
+              currentEpisodes = data.episodes || [];
+              currentEpisodeIndex = data.index || 0;
+              currentStreamId = data.streamId;
+              currentMagnetURI = data.magnetURI;
+
+              if (currentEpisodes.length > 1) {
+                episodeToggle.classList.add("has-episodes");
+                episodePanelTitle.textContent = data.name || "Епізоди";
+                episodePanelSubtitle.textContent = `${currentEpisodes.length} файлів`;
+                renderEpisodeList();
+                console.log("Restored episodes from localStorage:", currentEpisodes.length);
+              }
+            } else {
+              localStorage.removeItem('tv-episodes');
+            }
+          }
+        } catch (e) {
+          console.error("Failed to restore episodes:", e);
+        }
+      }
+
       // Start SSE connection
       connectSSE();
+
+      // Restore episodes first
+      restoreEpisodesFromStorage();
 
       // Check for existing URL on load
       fetch("/tv/current")
