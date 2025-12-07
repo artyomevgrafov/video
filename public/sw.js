@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v18';
 const STATIC_CACHE = `lan-video-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `lan-video-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `lan-video-images-${CACHE_VERSION}`;
@@ -11,7 +11,9 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/offline.html',
   '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icons/icon-512.png',
+  '/js/media-db.js',
+  '/js/media-ai.js'
 ];
 
 // External resources to cache
