@@ -450,7 +450,9 @@
       </div>
 
       <div class="status-bar" id="status">
-        Enter a media URL and send to TV
+        <span class="status-dot"></span>
+        <span id="statusText">Enter a media URL and send to TV</span>
+        <span style="margin-left:12px; font-family: monospace;">TVs: <span id="tvCount">0</span></span>
       </div>
     </section>
 
@@ -578,6 +580,18 @@
         statusBar.textContent = 'Error sending to TV';
       }
     });
+
+    // Monitor connected TV count
+    const tvCountEl = document.getElementById('tvCount');
+    async function refreshTvCount() {
+      try {
+        const r = await fetch('/tv/clients');
+        const d = await r.json();
+        if (tvCountEl) tvCountEl.textContent = d.clients || 0;
+      } catch (e) {}
+    }
+    setInterval(refreshTvCount, 3000);
+    setTimeout(refreshTvCount, 500);
 
     cleartvBtn.addEventListener('click', async () => {
       try {

@@ -22,6 +22,7 @@
 
     <div class="viewer" id="viewer"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
     <script>
       function getParam(name) {
         const p = new URLSearchParams(location.search);
@@ -42,10 +43,18 @@
         const src = useProxy ? `/proxy?url=${encodeURIComponent(u)}` : u;
         viewer.innerHTML = `<video id="v" controls autoplay playsinline><source src="${src}"></video>`;
       } else if (lower.endsWith('.m3u8')) {
-        // HLS: try native, if not supported, user can enable a client that supports it
         const src = `/proxy?url=${encodeURIComponent(u)}`;
         viewer.innerHTML = `<video id="v" controls autoplay playsinline></video>`;
-        // If HLS.js were present, we could use it. For now, rely on native HLS in SmartTV browsers.
+        const vid = document.getElementById('v');
+        if (vid.canPlayType('application/vnd.apple.mpegurl')) {
+          vid.src = src;
+        } else if (window.Hls && Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(src);
+          hls.attachMedia(vid);
+        } else {
+          viewer.innerHTML = `<div class="fallback">Your browser does not support HLS playback. Use Safari or install an HLS-capable app.</div>`;
+        }
       } else if (/youtube|youtu.be/.test(lower)) {
         // attempt to extract id and use embed
         const idMatch = u.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
