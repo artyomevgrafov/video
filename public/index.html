@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LAN Video Server</title>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@0.294.0/dist/umd/lucide.min.js"></script>
+  <!-- Inter font - Swiss typography -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Fibonacci spacing scale: 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89 */
+      --sp-1: 1px;
+      --sp-2: 2px;
+      --sp-3: 3px;
+      --sp-5: 5px;
+      --sp-8: 8px;
+      --sp-13: 13px;
+      --sp-21: 21px;
+      --sp-34: 34px;
+      --sp-55: 55px;
+      --sp-89: 89px;
+      
+      /* Golden ratio: 1.618 */
+      --phi: 1.618;
+      
+      /* Swiss color palette - minimal */
+      --black: #0a0a0a;
+      --white: #fafafa;
+      --gray-100: #f5f5f5;
+      --gray-200: #e5e5e5;
+      --gray-300: #d4d4d4;
+      --gray-400: #a3a3a3;
+      --gray-500: #737373;
+      --gray-600: #525252;
+      --gray-700: #404040;
+      --gray-800: #262626;
+      --gray-900: #171717;
+      
+      /* Accent - Helvetica red */
+      --accent: #ff3b30;
+      --accent-hover: #ff453a;
+      
+      /* Success */
+      --success: #30d158;
+      
+      /* Typography scale based on golden ratio */
+      --text-xs: 11px;
+      --text-sm: 13px;
+      --text-base: 16px;
+      --text-lg: 21px;
+      --text-xl: 26px;
+      --text-2xl: 34px;
+      --text-3xl: 42px;
+      --text-4xl: 55px;
+      --text-5xl: 68px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      background: var(--black);
+      color: var(--white);
+      min-height: 100vh;
+      line-height: var(--phi);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Grid system based on Brockmann's principles */
+    .container {
+      max-width: 987px; /* Fibonacci number */
+      margin: 0 auto;
+      padding: var(--sp-34) var(--sp-21);
+    }
+
+    /* Header - asymmetric Swiss layout */
+    .header {
+      display: grid;
+      grid-template-columns: var(--sp-89) 1fr;
+      gap: var(--sp-21);
+      align-items: center;
+      margin-bottom: var(--sp-55);
+      padding-bottom: var(--sp-21);
+      border-bottom: 1px solid var(--gray-800);
+    }
+
+    .logo-mark {
+      width: var(--sp-55);
+      height: var(--sp-55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent);
+      color: var(--white);
+    }
+
+    .logo-mark i {
+      width: var(--sp-34);
+      height: var(--sp-34);
+    }
+
+    .header-text h1 {
+      font-size: var(--text-2xl);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: var(--sp-5);
+    }
+
+    .header-text p {
+      font-size: var(--text-sm);
+      color: var(--gray-400);
+      font-weight: 400;
+    }
+
+    /* Section grid */
+    .section {
+      margin-bottom: var(--sp-55);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-13);
+      margin-bottom: var(--sp-21);
+    }
+
+    .section-header i {
+      width: var(--sp-21);
+      height: var(--sp-21);
+      color: var(--gray-400);
+    }
+
+    .section-title {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--gray-400);
+    }
+
+    /* TV Info Card */
+    .tv-card {
+      display: grid;
+      grid-template-columns: var(--sp-55) 1fr auto;
+      gap: var(--sp-21);
+      align-items: center;
+      padding: var(--sp-21);
+      background: var(--gray-900);
+      border: 1px solid var(--gray-800);
+    }
+
+    .tv-icon {
+      width: var(--sp-55);
+      height: var(--sp-55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--gray-800);
+    }
+
+    .tv-icon i {
+      width: var(--sp-21);
+      height: var(--sp-21);
+      color: var(--white);
+    }
+
+    .tv-info h3 {
+      font-size: var(--text-base);
+      font-weight: 500;
+      margin-bottom: var(--sp-3);
+    }
+
+    .tv-info p {
+      font-size: var(--text-sm);
+      color: var(--gray-400);
+    }
+
+    .tv-info a {
+      color: var(--white);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .tv-info a:hover {
+      color: var(--accent);
+    }
+
+    .status-dot {
+      width: var(--sp-8);
+      height: var(--sp-8);
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Input */
+    .input-group {
+      margin-bottom: var(--sp-21);
+    }
+
+    .input-label {
+      display: block;
+      font-size: var(--text-xs);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--gray-400);
+      margin-bottom: var(--sp-8);
+    }
+
+    .input-field {
+      width: 100%;
+      padding: var(--sp-13) var(--sp-21);
+      font-size: var(--text-base);
+      font-family: inherit;
+      background: var(--gray-900);
+      border: 1px solid var(--gray-700);
+      color: var(--white);
+      transition: border-color 0.2s;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: var(--white);
+    }
+
+    .input-field::placeholder {
+      color: var(--gray-600);
+    }
+
+    /* Button grid - Fibonacci proportions */
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--sp-8);
+    }
+
+    .button-grid-wide {
+      grid-template-columns: 2fr 1fr;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-8);
+      padding: var(--sp-13) var(--sp-21);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      font-family: inherit;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn i {
+      width: var(--sp-13);
+      height: var(--sp-13);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--white);
+      border-color: var(--accent);
+      grid-column: span 3;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--white);
+      border-color: var(--gray-700);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--white);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--gray-400);
+      border-color: transparent;
+    }
+
+    .btn-ghost:hover {
+      color: var(--white);
+    }
+
+    /* Status bar */
+    .status-bar {
+      margin-top: var(--sp-21);
+      padding: var(--sp-13) var(--sp-21);
+      background: var(--gray-900);
+      border-left: 2px solid var(--gray-700);
+      font-size: var(--text-sm);
+      color: var(--gray-400);
+    }
+
+    .status-bar a {
+      color: var(--white);
+    }
+
+    /* Preview */
+    .preview-container {
+      aspect-ratio: 16/9;
+      background: var(--gray-900);
+      border: 1px solid var(--gray-800);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .preview-container video,
+    .preview-container iframe {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .preview-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--sp-13);
+      color: var(--gray-600);
+    }
+
+    .preview-placeholder i {
+      width: var(--sp-34);
+      height: var(--sp-34);
+    }
+
+    .preview-placeholder span {
+      font-size: var(--text-sm);
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: var(--sp-89);
+      padding-top: var(--sp-21);
+      border-top: 1px solid var(--gray-800);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: var(--text-xs);
+      color: var(--gray-600);
+    }
+
+    /* Responsive */
+    @media (max-width: 610px) {
+      .header {
+        grid-template-columns: 1fr;
+      }
+      .button-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .btn-primary {
+        grid-column: span 2;
+      }
+      .tv-card {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .tv-icon {
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo-mark">
+        <i data-lucide="play"></i>
+      </div>
+      <div class="header-text">
+        <h1>LAN Video Server</h1>
+        <p>Stream to any device on your network</p>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="section-header">
+        <i data-lucide="monitor"></i>
+        <span class="section-title">Television</span>
+      </div>
+      <div class="tv-card">
+        <div class="tv-icon">
+          <i data-lucide="tv"></i>
+        </div>
+        <div class="tv-info">
+          <h3>Open on your TV</h3>
+          <p>Navigate to <a href="/tv.html" id="tvLink">/tv.html</a></p>
+        </div>
+        <div class="status-dot" title="Server online"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <i data-lucide="link"></i>
+        <span class="section-title">Media URL</span>
+      </div>
+      
+      <div class="input-group">
+        <label class="input-label" for="url">Video or Stream URL</label>
+        <input 
+          id="url" 
+          class="input-field"
+          type="text" 
+          placeholder="https://example.com/video.mp4"
+          autocomplete="off"
+        >
+      </div>
+
+      <div class="button-grid">
+        <button class="btn btn-primary" id="sendtv">
+          <i data-lucide="send"></i>
+          Send to TV
+        </button>
+        <button class="btn btn-secondary" id="open">
+          <i data-lucide="play"></i>
+          Play here
+        </button>
+        <button class="btn btn-secondary" id="share">
+          <i data-lucide="share-2"></i>
+          Share
+        </button>
+        <button class="btn btn-ghost" id="cleartv">
+          <i data-lucide="x"></i>
+          Clear
+        </button>
+      </div>
+
+      <div class="status-bar" id="status">
+        Enter a media URL and send to TV
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <i data-lucide="eye"></i>
+        <span class="section-title">Preview</span>
+      </div>
+      <div class="preview-container" id="preview">
+        <div class="preview-placeholder">
+          <i data-lucide="film"></i>
+          <span>No media selected</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>LAN Video Server</span>
+      <span id="serverInfo"></span>
+    </footer>
+  </div>
+
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    const urlInput = document.getElementById('url');
+    const openBtn = document.getElementById('open');
+    const shareBtn = document.getElementById('share');
+    const sendtvBtn = document.getElementById('sendtv');
+    const cleartvBtn = document.getElementById('cleartv');
+    const preview = document.getElementById('preview');
+    const statusBar = document.getElementById('status');
+    const tvLink = document.getElementById('tvLink');
+    const serverInfo = document.getElementById('serverInfo');
+
+    serverInfo.textContent = location.host;
+    tvLink.href = `http://${location.host}/tv.html`;
+
+    openBtn.addEventListener('click', () => {
+      const u = urlInput.value.trim();
+      if (!u) return alert('Enter URL');
+      location.href = `/player.html?url=${encodeURIComponent(u)}`;
+    });
+
+    shareBtn.addEventListener('click', async () => {
+      const u = urlInput.value.trim();
+      if (!u) return alert('Enter URL');
+      statusBar.textContent = 'Generating link...';
+      try {
+        const r = await fetch(`/api/share?url=${encodeURIComponent(u)}`);
+        const data = await r.json();
+        statusBar.innerHTML = `Link: <a href="${data.link}" target="_blank">${data.link}</a>`;
+      } catch (e) {
+        statusBar.textContent = 'Error generating link';
+      }
+    });
+
+    sendtvBtn.addEventListener('click', async () => {
+      const u = urlInput.value.trim();
+      if (!u) return alert('Enter URL');
+
+      statusBar.textContent = 'Preparing...';
+      try {
+        let urlToSend = u;
+        // Якщо це сторінка серіалу filmitorrent.net/serial/
+        if (/filmitorrent\.net\/serial\//.test(u)) {
+          statusBar.textContent = 'Парсинг сторінки...';
+          const resp = await fetch(u);
+          const html = await resp.text();
+          // Знаходимо всі .torrent-посилання
+          const re = /href=["']([^"']+\.torrent)["']/g;
+          let m, torrents = [];
+          while ((m = re.exec(html))) {
+            torrents.push(m[1].startsWith('http') ? m[1] : new URL(m[1], u).href);
+          }
+          if (torrents.length === 0) {
+            statusBar.textContent = 'Торренти не знайдено на сторінці';
+            return;
+          }
+          // Показати вибір
+          let pick = 0;
+          if (torrents.length > 1) {
+            let msg = 'Виберіть торрент для стріму:\n';
+            torrents.forEach((t, i) => { msg += `${i+1}: ${t}\n`; });
+            let ans = prompt(msg, '1');
+            pick = Math.max(0, Math.min(torrents.length-1, parseInt(ans)-1));
+          }
+          urlToSend = torrents[pick];
+        }
+        // If torrent or magnet, create server-side stream first
+        if (urlToSend.startsWith('magnet:') || urlToSend.toLowerCase().endsWith('.torrent')) {
+          statusBar.textContent = 'Creating stream on server...';
+          try {
+            const r2 = await fetch('/api/torrent2mp4', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: urlToSend })
+            });
+            const d2 = await r2.json();
+            if (!d2.streamId) throw new Error(d2.error || 'No stream id');
+            // Формуємо HLS-URL
+            const hlsUrl = `/hls/${encodeURIComponent(d2.streamId)}.m3u8`;
+            urlToSend = hlsUrl;
+            statusBar.textContent = `HLS stream ready: ${d2.name}`;
+          } catch (err) {
+            statusBar.textContent = 'Error creating stream: ' + (err.message || err);
+            return;
+          }
+        }
+
+        statusBar.textContent = 'Sending to TV...';
+        const r = await fetch('/tv/push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: urlToSend })
+        });
+        const data = await r.json();
+        if (data.success) {
+          statusBar.textContent = `Sent to ${data.clients} TV(s)`;
+        } else {
+          statusBar.textContent = 'Error: ' + (data.error || 'Unknown');
+        }
+      } catch (e) {
+        statusBar.textContent = 'Error sending to TV';
+      }
+    });
+
+    cleartvBtn.addEventListener('click', async () => {
+      try {
+        await fetch('/tv/clear', { method: 'POST' });
+        statusBar.textContent = 'TV cleared';
+        preview.innerHTML = `
+          <div class="preview-placeholder">
+            <i data-lucide="film"></i>
+            <span>No media selected</span>
+          </div>
+        `;
+        lucide.createIcons();
+      } catch (e) {
+        statusBar.textContent = 'Error';
+      }
+    });
+
+    urlInput.addEventListener('input', () => {
+      const u = urlInput.value.trim();
+      if (!u) {
+        preview.innerHTML = `
+          <div class="preview-placeholder">
+            <i data-lucide="film"></i>
+            <span>No media selected</span>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      const lower = u.toLowerCase();
+
+      if (lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov')) {
+        preview.innerHTML = `<video src="${u}" controls muted></video>`;
+      } else if (/youtube|youtu\.be/.test(lower)) {
+        const idMatch = u.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+        const id = idMatch ? idMatch[1] : null;
+        if (id) {
+          preview.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>`;
+        }
+      } else if (u.startsWith('magnet:') || lower.endsWith('.torrent')) {
+        preview.innerHTML = `
+          <div class="preview-placeholder">
+            <i data-lucide="download"></i>
+            <span>Torrent stream</span>
+          </div>
+        `;
+        lucide.createIcons();
+      } else {
+        // Website URL - cannot embed due to X-Frame-Options
+        preview.innerHTML = `
+          <div class="preview-placeholder">
+            <i data-lucide="external-link"></i>
+            <span>Website (opens in new tab on TV)</span>
+          </div>
+        `;
+        lucide.createIcons();
+      }
+    });
+
+    urlInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendtvBtn.click();
+    });
+  </script>
+</body>
+</html>

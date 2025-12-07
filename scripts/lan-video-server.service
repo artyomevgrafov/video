@@ -1,0 +1,14 @@
+[Unit]
+Description=LAN Video Server (Node.js)
+After=network.target
+
+[Service]
+Type=simple
+User=q
+WorkingDirectory=/home/q/Відео
+ExecStart=/usr/bin/env npx pm2 start ecosystem.config.js --no-daemon
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+{
+  "name": "lan-video-server",
+  "version": "1.0.0",
+  "description": "Local network video/share server for playing any web video on TV browsers",
+  "main": "server.js",
+  "scripts": {
+    "start": "PORT=8081 node server.js",
+    "start:pm2": "npx pm2 start ecosystem.config.js",
+    "stop:pm2": "npx pm2 stop ecosystem.config.js || true",
+    "restart:pm2": "npx pm2 restart ecosystem.config.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bencode": "^4.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "magnet-uri": "^7.0.7",
+    "morgan": "^1.10.0",
+    "webtorrent": "^2.8.5"
+  }
+}

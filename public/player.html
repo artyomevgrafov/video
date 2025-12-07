@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Player - LAN Video Server</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin:0; padding:0; background:#000; color:#fff; }
+    .container { max-width:1280px; margin:0 auto; padding:12px; }
+    header { display:flex; align-items:center; gap:10px; }
+    label, input { font-size:18px }
+    .viewer { margin-top:12px; }
+    iframe, video, .fallback { width:100%; height:calc(100vh - 140px); background:#111 }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="/" style="color:#fff; text-decoration:none">&larr; Back</a>
+      <h2 style="margin:0">Player</h2>
+    </header>
+
+    <div class="viewer" id="viewer"></div>
+
+    <script>
+      function getParam(name) {
+        const p = new URLSearchParams(location.search);
+        return p.get(name);
+      }
+      const viewer = document.getElementById('viewer');
+      const u = getParam('url');
+      if (!u) {
+        viewer.innerHTML = '<div class="fallback">No URL provided</div>';
+        throw new Error('Missing url');
+      }
+
+      // Decide if we should use local proxy for CORS or play directly
+      const lower = u.toLowerCase();
+      const useProxy = lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.m3u8') || lower.includes('googlevideo') || lower.includes('cloudfront.net');
+
+      if (lower.endsWith('.mp4') || lower.endsWith('.webm')) {
+        const src = useProxy ? `/proxy?url=${encodeURIComponent(u)}` : u;
+        viewer.innerHTML = `<video id="v" controls autoplay playsinline><source src="${src}"></video>`;
+      } else if (lower.endsWith('.m3u8')) {
+        // HLS: try native, if not supported, user can enable a client that supports it
+        const src = `/proxy?url=${encodeURIComponent(u)}`;
+        viewer.innerHTML = `<video id="v" controls autoplay playsinline></video>`;
+        // If HLS.js were present, we could use it. For now, rely on native HLS in SmartTV browsers.
+      } else if (/youtube|youtu.be/.test(lower)) {
+        // attempt to extract id and use embed
+        const idMatch = u.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+        const id = idMatch ? idMatch[1] : null;
+        const embed = id ? `https://www.youtube.com/embed/${id}?autoplay=1&rel=0` : u;
+        viewer.innerHTML = `<iframe src="${embed}" frameborder="0" allowfullscreen allow="autoplay"></iframe>`;
+      } else {
+        // arbitrary site: show in an iframe; may be blocked by X-Frame-Options
+        viewer.innerHTML = `<iframe src="${u}" frameborder="0"></iframe>`;
+      }
+
+      // Support keyboard controls for local testing
+      document.addEventListener('keydown', (e) => {
+        const v = document.querySelector('video');
+        if (!v) return;
+        if (e.key === ' ') { e.preventDefault(); if (v.paused) v.play(); else v.pause(); }
+        if (e.key === 'ArrowLeft') v.currentTime = Math.max(0, v.currentTime - 10);
+        if (e.key === 'ArrowRight') v.currentTime = Math.min(v.duration || 99999, v.currentTime + 10);
+      });
+    </script>
+  </div>
+</body>
+</html>
