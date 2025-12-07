@@ -216,6 +216,106 @@
         height: 14px;
       }
 
+      /* Remote Control */
+      .remote-control {
+        margin-top: var(--sp-21);
+        padding: var(--sp-21);
+        background: var(--gray-900);
+        border: 1px solid var(--gray-800);
+      }
+      .remote-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--sp-13);
+      }
+      .remote-title {
+        font-size: var(--text-xs);
+        color: var(--gray-500);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .remote-media {
+        font-size: var(--text-sm);
+        color: var(--gray-300);
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .remote-progress {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-13);
+        margin-bottom: var(--sp-13);
+      }
+      .remote-time {
+        font-size: var(--text-xs);
+        color: var(--gray-400);
+        font-variant-numeric: tabular-nums;
+        min-width: 45px;
+      }
+      .remote-seek {
+        flex: 1;
+        height: 6px;
+        background: var(--gray-700);
+        cursor: pointer;
+        position: relative;
+      }
+      .remote-seek-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        background: var(--accent);
+        width: 0%;
+        transition: width 0.1s;
+      }
+      .remote-seek:hover .remote-seek-fill {
+        background: var(--white);
+      }
+      .remote-buttons {
+        display: flex;
+        gap: var(--sp-8);
+        justify-content: center;
+      }
+      .remote-btn {
+        padding: var(--sp-13) var(--sp-21);
+        font-size: var(--text-sm);
+        font-family: inherit;
+        background: var(--gray-800);
+        color: var(--gray-300);
+        border: 1px solid var(--gray-700);
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        gap: var(--sp-5);
+      }
+      .remote-btn:hover {
+        color: var(--white);
+        background: var(--gray-700);
+        border-color: var(--gray-600);
+      }
+      .remote-btn:active {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .remote-btn i {
+        width: 16px;
+        height: 16px;
+      }
+      .remote-play {
+        padding: var(--sp-13) var(--sp-34);
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--black);
+      }
+      .remote-play:hover {
+        background: var(--white);
+        border-color: var(--white);
+      }
+
       /* TV status card */
       .tv-card {
         display: flex;
@@ -262,25 +362,6 @@
       }
       .tv-count.zero {
         color: var(--gray-600);
-      }
-
-      /* QR Code */
-      .qr-section {
-        text-align: center;
-        padding: var(--sp-21);
-        background: var(--white);
-        margin-bottom: var(--sp-34);
-      }
-      .qr-section canvas {
-        display: block;
-        margin: 0 auto;
-      }
-      .qr-label {
-        margin-top: var(--sp-8);
-        font-size: var(--text-xs);
-        color: var(--black);
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
       }
 
       /* History */
@@ -446,6 +527,144 @@
         color: var(--gray-400);
       }
 
+      /* Search modal */
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 10, 10, 0.95);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: var(--sp-21);
+      }
+      .modal.active {
+        display: flex;
+      }
+      .modal-content {
+        background: var(--gray-900);
+        border: 1px solid var(--gray-700);
+        max-width: 987px;
+        width: 100%;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .modal-header {
+        padding: var(--sp-21);
+        border-bottom: 1px solid var(--gray-800);
+        display: flex;
+        align-items: center;
+        gap: var(--sp-13);
+      }
+      .modal-header input {
+        flex: 1;
+        padding: var(--sp-13);
+        background: var(--gray-800);
+        border: 1px solid var(--gray-700);
+        color: var(--white);
+        font-family: inherit;
+        font-size: var(--text-base);
+      }
+      .modal-header input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      .modal-header .close-btn {
+        width: var(--sp-34);
+        height: var(--sp-34);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        color: var(--gray-400);
+        cursor: pointer;
+      }
+      .modal-header .close-btn:hover {
+        color: var(--white);
+      }
+      .modal-tabs {
+        display: flex;
+        padding: var(--sp-8);
+        gap: var(--sp-3);
+        border-bottom: 1px solid var(--gray-800);
+      }
+      .modal-tab {
+        padding: var(--sp-8) var(--sp-13);
+        background: transparent;
+        border: none;
+        color: var(--gray-400);
+        cursor: pointer;
+        font-family: inherit;
+        font-size: var(--text-sm);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .modal-tab.active {
+        color: var(--white);
+        background: var(--gray-800);
+      }
+      .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: var(--sp-13);
+      }
+      .search-results {
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-8);
+      }
+      .search-result {
+        display: flex;
+        gap: var(--sp-13);
+        padding: var(--sp-13);
+        background: var(--gray-800);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .search-result:hover {
+        border-color: var(--gray-600);
+      }
+      .search-result-thumb {
+        width: 144px;
+        height: 81px;
+        background: var(--gray-700);
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .search-result-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .search-result-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-5);
+      }
+      .search-result-title {
+        font-size: var(--text-base);
+        font-weight: 500;
+        line-height: 1.3;
+      }
+      .search-result-meta {
+        font-size: var(--text-sm);
+        color: var(--gray-400);
+      }
+      .search-loading {
+        text-align: center;
+        padding: var(--sp-34);
+        color: var(--gray-400);
+      }
+      .search-empty {
+        text-align: center;
+        padding: var(--sp-34);
+        color: var(--gray-600);
+      }
+
       /* Bookmarklet */
       .bookmarklet {
         margin-top: var(--sp-34);
@@ -506,6 +725,34 @@
       </div>
     </div>
 
+    <!-- Search Modal -->
+    <div class="modal" id="searchModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Шукати відео..."
+            autocomplete="off"
+          />
+          <button class="close-btn" id="closeSearch">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-tabs">
+          <button class="modal-tab active" data-source="youtube">
+            YouTube
+          </button>
+          <button class="modal-tab" data-source="torrents">Torrents</button>
+        </div>
+        <div class="modal-body">
+          <div id="searchResultsContainer">
+            <div class="search-empty">Введіть запит для пошуку</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="container">
       <header class="header">
         <div class="logo"><i data-lucide="play"></i></div>
@@ -523,12 +770,6 @@
           <p>Open <a href="/tv.html" id="tvLink">/tv.html</a> on your TV</p>
         </div>
         <div class="tv-count zero" id="tvCount">0</div>
-      </div>
-
-      <!-- QR Code for TV -->
-      <div class="qr-section" id="qrSection">
-        <canvas id="qrCanvas"></canvas>
-        <div class="qr-label">Scan to open TV page</div>
       </div>
 
       <!-- Main Input -->
@@ -558,6 +799,9 @@
 
       <!-- Secondary actions -->
       <div class="secondary-actions">
+        <button class="sec-btn" id="searchBtn">
+          <i data-lucide="search"></i> Пошук
+        </button>
         <button class="sec-btn" id="playHereBtn">
           <i data-lucide="play"></i> Play here
         </button>
@@ -567,6 +811,42 @@
         <button class="sec-btn" id="clearTvBtn">
           <i data-lucide="x"></i> Clear TV
         </button>
+      </div>
+
+      <!-- Remote Control -->
+      <div class="remote-control" id="remoteControl">
+        <div class="remote-header">
+          <div class="remote-title">Пульт TV</div>
+          <div class="remote-media" id="remoteMedia">Нічого не грає</div>
+        </div>
+        <div class="remote-progress">
+          <span class="remote-time" id="remoteCurrentTime">00:00</span>
+          <div class="remote-seek" id="remoteSeek">
+            <div class="remote-seek-fill" id="remoteSeekFill"></div>
+          </div>
+          <span class="remote-time" id="remoteDuration">00:00</span>
+        </div>
+        <div class="remote-buttons">
+          <button class="remote-btn" id="remoteBack30" title="-30 сек">
+            <i data-lucide="rewind"></i> 30
+          </button>
+          <button class="remote-btn" id="remoteBack10" title="-10 сек">
+            <i data-lucide="skip-back"></i>
+          </button>
+          <button
+            class="remote-btn remote-play"
+            id="remotePlayPause"
+            title="Play/Pause"
+          >
+            <i data-lucide="play" id="remotePlayIcon"></i>
+          </button>
+          <button class="remote-btn" id="remoteForward10" title="+10 сек">
+            <i data-lucide="skip-forward"></i>
+          </button>
+          <button class="remote-btn" id="remoteForward30" title="+30 сек">
+            30 <i data-lucide="fast-forward"></i>
+          </button>
+        </div>
       </div>
 
       <!-- Status -->
@@ -607,9 +887,6 @@
       </footer>
     </div>
 
-    <!-- QR Code library -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-
     <script>
       lucide.createIcons();
 
@@ -624,20 +901,13 @@
       const tvCount = $("tvCount");
       const historyList = $("historyList");
       const dropZone = $("dropZone");
+      const searchModal = $("searchModal");
+      const searchInput = $("searchInput");
+      const searchResultsContainer = $("searchResultsContainer");
 
       // Server info
       $("serverInfo").textContent = location.host;
       $("tvLink").href = `http://${location.host}/tv.html`;
-
-      // Generate QR code for TV page
-      const tvUrl = `http://${location.host}/tv.html`;
-      if (typeof QRCode !== "undefined") {
-        QRCode.toCanvas($("qrCanvas"), tvUrl, {
-          width: 144,
-          margin: 1,
-          color: { dark: "#0a0a0a", light: "#fafafa" },
-        });
-      }
 
       // Bookmarklet
       const bookmarkletCode = `javascript:(function(){var s=document.location.href;fetch('http://${location.host}/api/url2hls',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:s})}).then(r=>r.json()).then(d=>{if(d.streamUrl){fetch('http://${location.host}/tv/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:d.streamUrl})}).then(()=>alert('Sent to TV: '+d.name)).catch(e=>alert('Error: '+e))}else{fetch('http://${location.host}/tv/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:s})}).then(()=>alert('Sent to TV')).catch(e=>alert('Error: '+e))}}).catch(()=>{fetch('http://${location.host}/tv/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:s})}).then(()=>alert('Sent to TV'))})})();`;
@@ -836,7 +1106,11 @@
             title = d.name || title;
           }
           // For torrents, use existing torrent2mp4
-          else if (
+          // Variables for episode info
+          let episodes = null;
+          let streamId = null;
+
+          if (
             currentDetection?.type === "torrent" ||
             url.startsWith("magnet:") ||
             url.toLowerCase().endsWith(".torrent")
@@ -853,14 +1127,27 @@
               d.streamUrl || `/hls/${encodeURIComponent(d.streamId)}.m3u8`;
             title = d.name || title;
             icon = "download";
+
+            // Store video files for episode switching
+            if (d.videoFiles && d.videoFiles.length > 1) {
+              episodes = d.videoFiles;
+              streamId = d.streamId;
+            }
           }
 
-          // Push to TV
+          // Push to TV with metadata
           status.textContent = "Sending to TV...";
+          const pushPayload = { url: urlToSend, name: title };
+          if (episodes) {
+            pushPayload.episodes = episodes;
+            pushPayload.streamId = streamId;
+            pushPayload.currentIndex = 0;
+          }
+
           const pushRes = await fetch("/tv/push", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url: urlToSend }),
+            body: JSON.stringify(pushPayload),
           });
           const pushData = await pushRes.json();
 
@@ -897,6 +1184,294 @@
         await fetch("/tv/clear", { method: "POST" });
         status.textContent = "TV cleared";
       });
+
+      // Remote control
+      async function sendTvControl(action, value) {
+        try {
+          await fetch("/tv/control", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action, value }),
+          });
+        } catch (err) {
+          console.error("Remote control error:", err);
+        }
+      }
+
+      $("remoteBack30").addEventListener("click", () =>
+        sendTvControl("seekRelative", -30),
+      );
+      $("remoteBack10").addEventListener("click", () =>
+        sendTvControl("seekRelative", -10),
+      );
+      $("remotePlayPause").addEventListener("click", () =>
+        sendTvControl("togglePlay"),
+      );
+      $("remoteForward10").addEventListener("click", () =>
+        sendTvControl("seekRelative", 10),
+      );
+      $("remoteForward30").addEventListener("click", () =>
+        sendTvControl("seekRelative", 30),
+      );
+
+      // Seek bar click
+      const remoteSeek = $("remoteSeek");
+      const remoteSeekFill = $("remoteSeekFill");
+      const remoteCurrentTime = $("remoteCurrentTime");
+      const remoteDuration = $("remoteDuration");
+      const remoteMedia = $("remoteMedia");
+      const remotePlayIcon = $("remotePlayIcon");
+
+      let currentDuration = 0;
+
+      remoteSeek.addEventListener("click", (e) => {
+        if (!currentDuration) return;
+        const rect = remoteSeek.getBoundingClientRect();
+        const pct = (e.clientX - rect.left) / rect.width;
+        const seekTime = pct * currentDuration;
+        sendTvControl("seek", seekTime);
+      });
+
+      function formatTime(s) {
+        if (!s || isNaN(s)) return "00:00";
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = Math.floor(s % 60);
+        if (h > 0) {
+          return `${h}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+        }
+        return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+      }
+
+      // SSE for remote state
+      function connectRemoteSSE() {
+        const evtSource = new EventSource("/tv/remote");
+
+        evtSource.onmessage = (e) => {
+          try {
+            const state = JSON.parse(e.data);
+            currentDuration = state.duration || 0;
+
+            remoteCurrentTime.textContent = formatTime(state.currentTime);
+            remoteDuration.textContent = formatTime(state.duration);
+
+            const pct = state.duration
+              ? (state.currentTime / state.duration) * 100
+              : 0;
+            remoteSeekFill.style.width = pct + "%";
+
+            if (state.mediaName) {
+              remoteMedia.textContent = state.mediaName;
+            } else {
+              remoteMedia.textContent = "Нічого не грає";
+            }
+
+            remotePlayIcon.setAttribute(
+              "data-lucide",
+              state.paused ? "play" : "pause",
+            );
+            lucide.createIcons();
+          } catch (err) {
+            console.error("Remote SSE error:", err);
+          }
+        };
+
+        evtSource.onerror = () => {
+          evtSource.close();
+          setTimeout(connectRemoteSSE, 3000);
+        };
+      }
+
+      connectRemoteSSE();
+
+      // Search functionality
+      let currentSearchSource = "youtube";
+      let searchTimeout = null;
+
+      // Open search modal
+      $("searchBtn").addEventListener("click", () => {
+        searchModal.classList.add("active");
+        searchInput.focus();
+        lucide.createIcons();
+      });
+
+      // Close search modal
+      $("closeSearch").addEventListener("click", () => {
+        searchModal.classList.remove("active");
+      });
+
+      // Close on background click
+      searchModal.addEventListener("click", (e) => {
+        if (e.target === searchModal) {
+          searchModal.classList.remove("active");
+        }
+      });
+
+      // Close on Escape
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && searchModal.classList.contains("active")) {
+          searchModal.classList.remove("active");
+        }
+      });
+
+      // Tab switching
+      document.querySelectorAll(".modal-tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          document
+            .querySelectorAll(".modal-tab")
+            .forEach((t) => t.classList.remove("active"));
+          tab.classList.add("active");
+          currentSearchSource = tab.dataset.source;
+
+          // Re-search with new source if there's a query
+          if (searchInput.value.trim()) {
+            performSearch(searchInput.value.trim());
+          }
+        });
+      });
+
+      // Search input handler with debounce
+      searchInput.addEventListener("input", () => {
+        const query = searchInput.value.trim();
+        clearTimeout(searchTimeout);
+
+        if (!query) {
+          searchResultsContainer.innerHTML =
+            '<div class="search-empty">Введіть запит для пошуку</div>';
+          return;
+        }
+
+        searchResultsContainer.innerHTML =
+          '<div class="search-loading">Шукаємо...</div>';
+
+        searchTimeout = setTimeout(() => {
+          performSearch(query);
+        }, 500);
+      });
+
+      // Search on Enter
+      searchInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          clearTimeout(searchTimeout);
+          const query = searchInput.value.trim();
+          if (query) performSearch(query);
+        }
+      });
+
+      // Perform search
+      async function performSearch(query) {
+        try {
+          const endpoint =
+            currentSearchSource === "youtube"
+              ? `/api/search/youtube?q=${encodeURIComponent(query)}`
+              : `/api/search/torrents?q=${encodeURIComponent(query)}`;
+
+          const response = await fetch(endpoint);
+          const data = await response.json();
+
+          if (data.error) {
+            searchResultsContainer.innerHTML = `<div class="search-empty">Помилка: ${data.error}</div>`;
+            return;
+          }
+
+          if (!data.results || data.results.length === 0) {
+            searchResultsContainer.innerHTML =
+              '<div class="search-empty">Нічого не знайдено</div>';
+            return;
+          }
+
+          // Render results
+          renderSearchResults(data.results);
+        } catch (err) {
+          searchResultsContainer.innerHTML = `<div class="search-empty">Помилка пошуку: ${err.message}</div>`;
+        }
+      }
+
+      // Render search results
+      function renderSearchResults(results) {
+        const html = results
+          .map((r) => {
+            let meta = "";
+
+            // YouTube metadata
+            if (currentSearchSource === "youtube") {
+              const duration = r.duration ? formatDuration(r.duration) : "";
+              const views = r.views ? formatViews(r.views) : "";
+              meta = [r.channel, views, duration].filter(Boolean).join(" • ");
+            }
+            // Torrent metadata
+            else {
+              const parts = [];
+              if (r.source) parts.push(`📦 ${r.source}`);
+              if (r.size) parts.push(`💾 ${r.size}`);
+              if (r.seeders !== undefined) {
+                const seedColor =
+                  r.seeders > 50 ? "🟢" : r.seeders > 10 ? "🟡" : "🔴";
+                parts.push(`${seedColor} ${r.seeders} seeders`);
+              }
+              if (r.rating) parts.push(`⭐ ${r.rating}`);
+              meta = parts.join(" • ");
+            }
+
+            const url = r.url || r.magnetLink || "";
+            const thumbContent = r.thumbnail
+              ? `<img src="${r.thumbnail}" alt="${r.title}">`
+              : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--gray-600);font-size:34px;">🎬</div>';
+
+            return `
+            <div class="search-result" data-url="${encodeURIComponent(url)}">
+              <div class="search-result-thumb">
+                ${thumbContent}
+              </div>
+              <div class="search-result-info">
+                <div class="search-result-title">${escapeHtml(r.title)}</div>
+                ${meta ? `<div class="search-result-meta">${meta}</div>` : ""}
+              </div>
+            </div>
+          `;
+          })
+          .join("");
+
+        searchResultsContainer.innerHTML = `<div class="search-results">${html}</div>`;
+
+        // Add click handlers
+        searchResultsContainer
+          .querySelectorAll(".search-result")
+          .forEach((el) => {
+            el.addEventListener("click", () => {
+              const url = decodeURIComponent(el.dataset.url);
+              urlInput.value = url;
+              urlInput.dispatchEvent(new Event("input"));
+              searchModal.classList.remove("active");
+            });
+          });
+      }
+
+      // Helper: format duration
+      function formatDuration(seconds) {
+        if (!seconds) return "";
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        if (h > 0)
+          return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+        return `${m}:${String(s).padStart(2, "0")}`;
+      }
+
+      // Helper: format views
+      function formatViews(views) {
+        if (!views) return "";
+        if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M views`;
+        if (views >= 1000) return `${(views / 1000).toFixed(1)}K views`;
+        return `${views} views`;
+      }
+
+      // Helper: escape HTML
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
 
       // Drag & drop for torrent files
       document.addEventListener("dragenter", (e) => {

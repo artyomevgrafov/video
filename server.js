@@ -5,11 +5,68 @@ const url = require("url");
 const http = require("http");
 const https = require("https");
 const crypto = require("crypto");
+const util = require("util");
 
 const { spawn, execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const torrentStream = require("torrent-stream");
+
+// --- Logging setup ---
+const LOG_DIR = path.join(__dirname, "logs");
+const LOG_FILE = path.join(LOG_DIR, "server.log");
+if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+const fileLogger = fs.createWriteStream(LOG_FILE, { flags: "a" });
+
+function formatLogArg(arg) {
+  if (arg instanceof Error) return arg.stack || arg.message;
+  if (typeof arg === "string") return arg;
+  return util.inspect(arg, { depth: 5, colors: false });
+}
+
+function writeLogLine(level, args) {
+  if (!fileLogger || fileLogger.destroyed) return;
+  const time = new Date().toISOString();
+  const msg = args.map(formatLogArg).join(" ");
+  fileLogger.write(`[${time}] [${level.toUpperCase()}] ${msg}\n`);
+}
+
+const originalConsole = {
+  log: console.log.bind(console),
+  info: console.info.bind(console),
+  warn: console.warn.bind(console),
+  error: console.error.bind(console),
+};
+
+["log", "info", "warn", "error"].forEach((level) => {
+  console[level] = (...args) => {
+    writeLogLine(level, args);
+    originalConsole[level](...args);
+  };
+});
+
+process.on("exit", () => {
+  if (fileLogger && !fileLogger.destroyed) {
+    fileLogger.end();
+  }
+});
+
+const httpLogStream = {
+  write: (message) => {
+    const line = message && message.trim();
+    if (line) writeLogLine("http", [line]);
+    process.stdout.write(message);
+  },
+};
+
+// Torrent scrapers - use simple API-based version
+let torrentScrapers = null;
+try {
+  torrentScrapers = require("./scrapers/simple-torrent-search");
+  console.log("Torrent scrapers loaded successfully");
+} catch (e) {
+  console.warn("Torrent scrapers not available:", e.message);
+}
 
 // yt-dlp path detection
 const YTDLP_PATH = (() => {
@@ -17,7 +74,7 @@ const YTDLP_PATH = (() => {
     return execSync("which yt-dlp 2>/dev/null || echo ~/.local/bin/yt-dlp")
       .toString()
       .trim();
-  } catch {
+  } catch (_) {
     return "yt-dlp";
   }
 })();
@@ -26,11 +83,14 @@ const app = express();
 const PORT = process.env.PORT || 8081;
 const HOST = process.env.HOST || "0.0.0.0";
 
+app.disable("etag");
+
 app.use(cors());
 app.use(express.static("public"));
 app.use(
   morgan(
     ":remote-addr :method :url :status :res[content-length] - :response-time ms",
+    { stream: httpLogStream },
   ),
 );
 
@@ -185,12 +245,15 @@ app.post("/api/url2hls", express.json(), async (req, res) => {
     // Check if already streaming
     if (activeStreams.has(streamId)) {
       const existing = activeStreams.get(streamId);
-      existing.lastUsed = Date.now();
-      return res.json({
-        streamId,
-        name: existing.name,
-        streamUrl: `/hls/${streamId}.m3u8`,
-      });
+      if (isStreamActive(existing)) {
+        existing.lastUsed = Date.now();
+        return res.json({
+          streamId,
+          name: existing.name,
+          streamUrl: `/hls/${streamId}.m3u8`,
+        });
+      }
+      activeStreams.delete(streamId);
     }
 
     // Get video info first
@@ -219,8 +282,8 @@ app.post("/api/url2hls", express.json(), async (req, res) => {
       });
     }
 
-    // Create HLS directory
-    ensureDir(hlsDir);
+    // Create fresh HLS directory
+    resetDir(hlsDir);
 
     // Start yt-dlp | ffmpeg pipeline
     const ytdlp = spawn(YTDLP_PATH, [
@@ -424,7 +487,7 @@ app.get("/api/detect", async (req, res) => {
       site: info.extractor,
       title: info.title,
     });
-  } catch {
+  } catch (_) {
     // Fallback: treat as website
     return res.json({ type: "website", method: "iframe", icon: "globe" });
   }
@@ -493,8 +556,108 @@ app.get("/api/torrent2magnet", async (req, res) => {
 let webtorrentClient = null;
 const activeStreams = new Map(); // streamId -> { torrent, fileIndex, lastUsed, mp4Path, ffmpegProcess }
 
+// ---- Torrent persistence for crash recovery ----
+const TORRENT_STATE_FILE = path.join(__dirname, "torrent-state.json");
+
+function saveTorrentState(infoHash, magnetURI, fileIndex, streamId) {
+  try {
+    let state = {};
+    if (fs.existsSync(TORRENT_STATE_FILE)) {
+      state = JSON.parse(fs.readFileSync(TORRENT_STATE_FILE, "utf8"));
+    }
+    state[streamId] = {
+      infoHash,
+      magnetURI,
+      fileIndex,
+      streamId,
+      savedAt: Date.now(),
+    };
+    fs.writeFileSync(TORRENT_STATE_FILE, JSON.stringify(state, null, 2));
+  } catch (err) {
+    console.error("Failed to save torrent state:", err.message);
+  }
+}
+
+function removeTorrentState(streamId) {
+  try {
+    if (!fs.existsSync(TORRENT_STATE_FILE)) return;
+    const state = JSON.parse(fs.readFileSync(TORRENT_STATE_FILE, "utf8"));
+    delete state[streamId];
+    fs.writeFileSync(TORRENT_STATE_FILE, JSON.stringify(state, null, 2));
+  } catch (err) {
+    console.error("Failed to remove torrent state:", err.message);
+  }
+}
+
+function loadTorrentStates() {
+  try {
+    if (!fs.existsSync(TORRENT_STATE_FILE)) return [];
+    const state = JSON.parse(fs.readFileSync(TORRENT_STATE_FILE, "utf8"));
+    return Object.values(state);
+  } catch (err) {
+    console.error("Failed to load torrent states:", err.message);
+    return [];
+  }
+}
+
+function markStreamUsed(entry) {
+  if (entry) entry.lastUsed = Date.now();
+}
+
+function findStreamByPrefix(partialId) {
+  for (const [id, entry] of activeStreams.entries()) {
+    if (id.startsWith(partialId)) {
+      return { id, entry };
+    }
+  }
+  return null;
+}
+
 function ensureDir(dirPath) {
   if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function resetDir(dirPath) {
+  if (fs.existsSync(dirPath)) {
+    fs.rmSync(dirPath, { recursive: true, force: true });
+  }
+  ensureDir(dirPath);
+}
+
+function setNoCacheHeaders(res) {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader(
+    "ETag",
+    `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+  );
+  res.setHeader("Last-Modified", new Date().toUTCString());
+}
+
+function sendHlsFile(res, filePath) {
+  if (!fs.existsSync(filePath))
+    return res.status(404).send("Segment not found");
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".ts") {
+    res.type("video/MP2T");
+  } else if (ext === ".m3u8") {
+    res.type("application/vnd.apple.mpegurl");
+  }
+  setNoCacheHeaders(res);
+  return res.sendFile(filePath, {
+    cacheControl: false,
+    lastModified: false,
+  });
+}
+
+function isStreamActive(entry) {
+  if (!entry) return false;
+  const proc = entry.ffmpegProcess;
+  if (Array.isArray(proc)) {
+    return proc.some((p) => p && p.exitCode === null && !p.killed);
+  }
+  return !!(proc && proc.exitCode === null && !proc.killed);
 }
 
 function buildHlsArgs(outputPath, baseUrl, opts = {}) {
@@ -507,7 +670,22 @@ function buildHlsArgs(outputPath, baseUrl, opts = {}) {
     scale,
   } = opts;
 
-  const args = ["-hwaccel", "auto", "-fflags", "+genpts", "-i", "pipe:0"];
+  const args = [
+    "-y",
+    "-hwaccel",
+    "auto",
+    // Збільшений буфер для стабільності
+    "-probesize",
+    "50M",
+    "-analyzeduration",
+    "100M",
+    "-fflags",
+    "+genpts+discardcorrupt+igndts",
+    "-err_detect",
+    "ignore_err",
+    "-i",
+    "pipe:0",
+  ];
 
   if (transcodeVideo) {
     args.push("-c:v", videoEncoder);
@@ -530,16 +708,23 @@ function buildHlsArgs(outputPath, baseUrl, opts = {}) {
   }
 
   args.push(
+    // Збільшений буфер muxer
     "-max_muxing_queue_size",
-    "1024",
+    "4096",
     "-f",
     "hls",
+    // Довші сегменти = менше запитів, стабільніше
     "-hls_time",
-    "4",
+    "6",
+    // Зберігати всі сегменти
     "-hls_list_size",
-    "10",
+    "0",
+    // Флаги для стабільності
     "-hls_flags",
-    "delete_segments+omit_endlist",
+    "omit_endlist+append_list+independent_segments",
+    // Початковий номер сегменту
+    "-start_number",
+    "0",
   );
 
   if (baseUrl) {
@@ -621,8 +806,13 @@ async function startHlsForTorrent(torrent, fileIndex = 0) {
   const streamId = makeStreamId(torrent.infoHash, fileIndex);
   const mp4Path = `/tmp/${streamId}.mp4`;
   const hlsDir = `/tmp/hls_${streamId}`;
-  if (activeStreams.has(streamId)) return { streamId, name: file.name };
-  ensureDir(hlsDir);
+  const existing = activeStreams.get(streamId);
+  if (existing && isStreamActive(existing)) {
+    markStreamUsed(existing);
+    return { streamId, name: existing.name || file.name };
+  }
+  activeStreams.delete(streamId);
+  resetDir(hlsDir);
   if (typeof file.select === "function") {
     try {
       file.select();
@@ -643,7 +833,9 @@ async function startHlsForTorrent(torrent, fileIndex = 0) {
     console.error("Torrent read error", err && err.message);
     try {
       ffmpeg.kill("SIGTERM");
-    } catch (e) {}
+    } catch (_) {
+      /* ignore */
+    }
   });
   ffmpeg.on("error", (err) =>
     console.error("ffmpeg error", err && err.message),
@@ -672,8 +864,11 @@ async function addTorrentForStreaming(magnetURI, opts = {}) {
         const streamId = makeStreamId(infoHash, fileIndex);
         if (activeStreams.has(streamId)) {
           const existing = activeStreams.get(streamId);
-          existing.lastUsed = Date.now();
-          return resolve({ streamId, name: existing.name });
+          if (isStreamActive(existing)) {
+            existing.lastUsed = Date.now();
+            return resolve({ streamId, name: existing.name });
+          }
+          activeStreams.delete(streamId);
         }
         const existingTorrent = client.get(infoHash);
         if (existingTorrent) {
@@ -688,11 +883,16 @@ async function addTorrentForStreaming(magnetURI, opts = {}) {
             );
             // If failed, attempt to return active stream if available
             const sid = makeStreamId(existingTorrent.infoHash, fileIndex);
-            if (activeStreams.has(sid))
-              return resolve({
-                streamId: sid,
-                name: activeStreams.get(sid).name,
-              });
+            if (activeStreams.has(sid)) {
+              const fallbackEntry = activeStreams.get(sid);
+              if (isStreamActive(fallbackEntry)) {
+                return resolve({
+                  streamId: sid,
+                  name: fallbackEntry.name,
+                });
+              }
+              activeStreams.delete(sid);
+            }
             return reject(err);
           }
         }
@@ -729,7 +929,10 @@ async function addTorrentForStreaming(magnetURI, opts = {}) {
                 : null;
               if (id && activeStreams.has(id)) {
                 const existing = activeStreams.get(id);
-                return resolve({ streamId: id, name: existing.name });
+                if (isStreamActive(existing)) {
+                  return resolve({ streamId: id, name: existing.name });
+                }
+                activeStreams.delete(id);
               }
               return reject(err);
             }
@@ -747,7 +950,9 @@ async function addTorrentForStreaming(magnetURI, opts = {}) {
           if (infoHash) {
             const streamId = makeStreamId(infoHash, fileIndex);
             const existing = activeStreams.get(streamId);
-            if (existing) return resolve({ streamId, name: existing.name });
+            if (isStreamActive(existing))
+              return resolve({ streamId, name: existing.name });
+            activeStreams.delete(streamId);
           }
         }
         reject(err);
@@ -765,23 +970,32 @@ setInterval(() => {
     if (now - s.lastUsed > 1000 * 60 * 10) {
       try {
         s.torrent.destroy();
-      } catch (e) {}
+      } catch (_) {
+        /* ignore */
+      }
       if (s.ffmpegProcess) {
         try {
           if (Array.isArray(s.ffmpegProcess)) {
             s.ffmpegProcess.forEach((p) => {
               try {
                 p.kill("SIGTERM");
-              } catch (e) {}
+              } catch (_) {
+                /* ignore */
+              }
             });
           } else {
             try {
               s.ffmpegProcess.kill("SIGTERM");
-            } catch (e) {}
+            } catch (_) {
+              /* ignore */
+            }
           }
-        } catch (e) {}
+        } catch (_) {
+          /* ignore */
+        }
       }
       activeStreams.delete(id);
+      removeTorrentState(id); // Clean up persisted state
     }
   }
 }, 1000 * 60);
@@ -820,10 +1034,152 @@ function scanExistingHlsStreams() {
   }
 }
 
+// Restore torrent streams from saved state (after crash/restart)
+async function restoreTorrentStreams() {
+  const states = loadTorrentStates();
+  if (states.length === 0) return;
+
+  console.log(`Found ${states.length} saved torrent state(s) to restore`);
+
+  for (const state of states) {
+    const { magnetURI, fileIndex, streamId, infoHash } = state;
+    if (!magnetURI || !streamId) continue;
+
+    // Check if HLS dir exists and has content
+    const hlsDir = `/tmp/hls_${streamId}`;
+    if (
+      !fs.existsSync(hlsDir) ||
+      !fs.existsSync(path.join(hlsDir, "index.m3u8"))
+    ) {
+      console.log(`Skipping restore for ${streamId} - no HLS data`);
+      removeTorrentState(streamId);
+      continue;
+    }
+
+    // Check if stream is already complete (has #EXT-X-ENDLIST)
+    const playlist = fs.readFileSync(path.join(hlsDir, "index.m3u8"), "utf8");
+    if (playlist.includes("#EXT-X-ENDLIST")) {
+      console.log(`Stream ${streamId} is complete, no need to restore torrent`);
+      continue;
+    }
+
+    console.log(`Restoring torrent stream: ${streamId}`);
+
+    try {
+      // Restart the torrent engine
+      const engine = await new Promise((resolve, reject) => {
+        const opts = {
+          path: path.join(__dirname, "downloads"),
+          dht: true,
+          verify: false,
+          trackers: [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://tracker.bittor.pw:1337/announce",
+            "udp://public.popcorn-tracker.org:6969/announce",
+            "udp://tracker.dler.org:6969/announce",
+            "udp://exodus.desync.com:6969/announce",
+          ],
+        };
+
+        const e = torrentStream(magnetURI, opts);
+        const timeout = setTimeout(() => {
+          e.destroy();
+          reject(new Error("Torrent restore timeout"));
+        }, 60000);
+
+        e.on("ready", () => {
+          clearTimeout(timeout);
+          torrentEngines.set(e.infoHash, e);
+          resolve(e);
+        });
+
+        e.on("error", (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+      });
+
+      const selectedFile = engine.files[fileIndex];
+      if (!selectedFile) {
+        console.error(`File index ${fileIndex} not found in torrent`);
+        continue;
+      }
+
+      // Deselect all, select target file
+      engine.files.forEach((f) => f.deselect());
+      selectedFile.select();
+      selectedFile.select(0); // highest priority
+
+      // Start ffmpeg for HLS (append mode - continue from where we left)
+      const ffmpegArgs = buildHlsArgs(
+        path.join(hlsDir, "index.m3u8"),
+        `/hls/${streamId}/`,
+      );
+
+      const ffmpeg = spawn("ffmpeg", ffmpegArgs, {
+        stdio: ["pipe", "ignore", "pipe"],
+      });
+
+      if (ffmpeg.stdin) {
+        ffmpeg.stdin.on("error", () => {});
+      }
+
+      let bytesReceived = 0;
+      const fileStream = selectedFile.createReadStream();
+
+      fileStream.on("data", (chunk) => {
+        bytesReceived += chunk.length;
+        if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
+          ffmpeg.stdin.write(chunk);
+        }
+      });
+
+      fileStream.on("end", () => {
+        if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
+          ffmpeg.stdin.end();
+        }
+      });
+
+      // Update active stream entry
+      activeStreams.set(streamId, {
+        torrent: null,
+        engine,
+        fileIndex,
+        lastUsed: Date.now(),
+        mp4Path: null,
+        hlsDir,
+        ffmpegProcess: ffmpeg,
+        name: selectedFile.name,
+        magnetURI,
+      });
+
+      console.log(
+        `Restored torrent stream: ${streamId} - ${selectedFile.name}`,
+      );
+    } catch (err) {
+      console.error(`Failed to restore ${streamId}:`, err.message);
+      // Don't remove state - might work on next restart
+    }
+  }
+}
+
 // ---- Push to TV feature ----
 // Store current URL to play (in-memory, single TV mode)
 let currentPlayUrl = null;
 let sseClients = [];
+let remoteClients = []; // SSE clients for remote control UI
+let playerState = {
+  currentTime: 0,
+  duration: 0,
+  paused: true,
+  mediaName: null,
+  streamId: null,
+};
+
+// Watch progress storage (streamId -> { position, duration, updatedAt })
+const watchProgress = new Map();
 
 // SSE endpoint for TV to listen for new URLs
 app.get("/tv/listen", (req, res) => {
@@ -834,7 +1190,11 @@ app.get("/tv/listen", (req, res) => {
 
   // Send current URL immediately if exists
   if (currentPlayUrl) {
-    res.write(`data: ${JSON.stringify({ url: currentPlayUrl })}\n\n`);
+    const payload =
+      typeof currentPlayUrl === "object"
+        ? currentPlayUrl
+        : { url: currentPlayUrl };
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
   }
 
   sseClients.push(res);
@@ -853,15 +1213,17 @@ app.get("/tv/clients", (req, res) => {
 
 // Endpoint to push URL to all connected TVs
 app.post("/tv/push", express.json(), (req, res) => {
-  const { url } = req.body;
+  const { url, name, episodes, streamId, currentIndex } = req.body;
   if (!url) return res.status(400).json({ error: "Missing url" });
 
-  currentPlayUrl = url;
+  // Store full metadata
+  currentPlayUrl = { url, name, episodes, streamId, currentIndex };
   console.log(`Pushing URL to ${sseClients.length} TV(s): ${url}`);
 
-  // Broadcast to all SSE clients
+  // Broadcast to all SSE clients with metadata
+  const payload = { url, name, episodes, streamId, currentIndex };
   sseClients.forEach((client) => {
-    client.write(`data: ${JSON.stringify({ url })}\n\n`);
+    client.write(`data: ${JSON.stringify(payload)}\n\n`);
   });
 
   res.json({ success: true, clients: sseClients.length });
@@ -869,7 +1231,116 @@ app.post("/tv/push", express.json(), (req, res) => {
 
 // Get current URL (for polling fallback)
 app.get("/tv/current", (req, res) => {
-  res.json({ url: currentPlayUrl });
+  if (typeof currentPlayUrl === "object" && currentPlayUrl) {
+    res.json(currentPlayUrl);
+  } else if (currentPlayUrl) {
+    res.json({ url: currentPlayUrl });
+  } else {
+    res.json({});
+  }
+});
+
+// ---- Search API ----
+// Search YouTube using yt-dlp
+app.get("/api/search/youtube", async (req, res) => {
+  const query = req.query.q;
+  if (!query) return res.status(400).json({ error: "Missing query" });
+
+  try {
+    const args = [
+      "--flat-playlist",
+      "--no-warnings",
+      "--dump-json",
+      "-I",
+      "1:15", // Limit to 15 results
+      `ytsearch15:${query}`,
+    ];
+
+    const proc = spawn(YTDLP_PATH, args);
+    let stdout = "";
+    let stderr = "";
+
+    proc.stdout.on("data", (d) => (stdout += d));
+    proc.stderr.on("data", (d) => (stderr += d));
+
+    proc.on("close", (code) => {
+      if (code !== 0) {
+        return res.status(500).json({ error: stderr || "Search failed" });
+      }
+
+      try {
+        const results = stdout
+          .trim()
+          .split("\n")
+          .filter((l) => l)
+          .map((line) => {
+            try {
+              const info = JSON.parse(line);
+              return {
+                title: info.title,
+                url: info.url || info.webpage_url,
+                thumbnail: info.thumbnail,
+                duration: info.duration,
+                channel: info.channel || info.uploader,
+                views: info.view_count,
+                id: info.id,
+              };
+            } catch (_) {
+              return null;
+            }
+          })
+          .filter((r) => r);
+
+        res.json({ results });
+      } catch (e) {
+        res.status(500).json({ error: "Failed to parse results" });
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Search torrents using multiple trackers
+app.get("/api/search/torrents", async (req, res) => {
+  const query = req.query.q;
+  if (!query) return res.status(400).json({ error: "Missing query" });
+
+  try {
+    if (!torrentScrapers) {
+      return res.json({
+        results: [],
+        message:
+          "Torrent scrapers not initialized. Run: npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth cheerio",
+      });
+    }
+
+    const source = req.query.source; // yts, 1337x, piratebay, or all
+    let results = [];
+
+    // Search based on source
+    switch (source) {
+      case "yts":
+        results = await torrentScrapers.searchYTS(query);
+        break;
+      case "1337x":
+        results = await torrentScrapers.search1337x(query);
+        break;
+      case "piratebay":
+        results = await torrentScrapers.searchPirateBay(query);
+        break;
+      default:
+        // Search all sources
+        results = await torrentScrapers.searchAll(query);
+    }
+
+    // Results already contain magnet links from API
+
+    res.json({ results });
+  } catch (err) {
+    console.error("Torrent search error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Clear current URL
@@ -881,13 +1352,81 @@ app.post("/tv/clear", (req, res) => {
   res.json({ success: true });
 });
 
+// Remote control for TV player
+app.post("/tv/control", express.json(), (req, res) => {
+  const { action, value } = req.body;
+  if (!action) return res.status(400).json({ error: "Missing action" });
+
+  const payload = { action, value };
+  console.log(`TV control: ${action}`, value !== undefined ? value : "");
+
+  sseClients.forEach((client) => {
+    client.write(`data: ${JSON.stringify(payload)}\n\n`);
+  });
+
+  res.json({ success: true, clients: sseClients.length });
+});
+
+// TV reports its player state (called periodically by TV)
+app.post("/tv/state", express.json(), (req, res) => {
+  const { currentTime, duration, paused, mediaName, streamId } = req.body;
+  playerState = {
+    currentTime,
+    duration,
+    paused,
+    mediaName,
+    streamId,
+    updatedAt: Date.now(),
+  };
+
+  // Save watch progress
+  if (streamId && currentTime > 5) {
+    watchProgress.set(streamId, {
+      position: currentTime,
+      duration,
+      updatedAt: Date.now(),
+    });
+  }
+
+  // Broadcast to remote clients
+  remoteClients.forEach((client) => {
+    client.write(`data: ${JSON.stringify(playerState)}\n\n`);
+  });
+
+  res.json({ success: true });
+});
+
+// Get saved watch progress for a stream
+app.get("/tv/progress/:streamId", (req, res) => {
+  const progress = watchProgress.get(req.params.streamId);
+  res.json(progress || { position: 0 });
+});
+
+// SSE endpoint for remote control UI to get player state
+app.get("/tv/remote", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  // Send current state immediately
+  res.write(`data: ${JSON.stringify(playerState)}\n\n`);
+
+  remoteClients.push(res);
+
+  req.on("close", () => {
+    remoteClients = remoteClients.filter((c) => c !== res);
+  });
+});
+
 // Create stream from magnet/torrent URL and return a playable mp4 URL
 // Torrent engines cache (torrent-stream based, works with regular BitTorrent peers)
 const torrentEngines = new Map(); // infoHash -> engine
 
 app.post("/api/torrent2mp4", express.json(), async (req, res) => {
-  const { url: inputUrl } = req.body || req.query || {};
-  console.log("torrent2mp4 called", inputUrl);
+  const { url: inputUrl, fileIndex: requestedFileIndex } =
+    req.body || req.query || {};
+  console.log("torrent2mp4 called", inputUrl, "fileIndex:", requestedFileIndex);
   if (!inputUrl) return res.status(400).json({ error: "Missing url" });
 
   try {
@@ -908,44 +1447,71 @@ app.post("/api/torrent2mp4", express.json(), async (req, res) => {
       if (magnetData.magnet) magnet = magnetData.magnet;
     }
 
-    // Use torrent-stream for real BitTorrent DHT/peers
-    const engine = await new Promise((resolve, reject) => {
-      const opts = {
-        path: path.join(__dirname, "downloads"),
-        trackers: [
-          "udp://tracker.opentrackr.org:1337/announce",
-          "udp://open.stealth.si:80/announce",
-          "udp://tracker.torrent.eu.org:451/announce",
-          "udp://tracker.bittor.pw:1337/announce",
-          "udp://public.popcorn-tracker.org:6969/announce",
-          "udp://tracker.dler.org:6969/announce",
-          "udp://exodus.desync.com:6969",
-          "udp://open.demonii.com:1337/announce",
-        ],
-      };
+    // Extract infoHash from magnet to check for existing engine
+    const magnetInfoHash = parseInfoHashFromMagnet(magnet);
 
-      const e = torrentStream(torrentBuffer || magnet, opts);
-      const timeout = setTimeout(() => {
-        e.destroy();
-        reject(new Error("Torrent timeout (60s) - no peers found"));
-      }, 60000);
+    // Check if we already have an engine for this torrent
+    let engine = magnetInfoHash ? torrentEngines.get(magnetInfoHash) : null;
 
-      e.on("ready", () => {
-        clearTimeout(timeout);
-        console.log(
-          "Torrent ready:",
-          e.torrent.name,
-          "- files:",
-          e.files.length,
-        );
-        resolve(e);
+    if (engine) {
+      console.log("Reusing existing torrent engine for:", magnetInfoHash);
+    } else {
+      // Use torrent-stream for real BitTorrent DHT/peers
+      engine = await new Promise((resolve, reject) => {
+        const opts = {
+          path: path.join(__dirname, "downloads"),
+          dht: true,
+          verify: false,
+          trackers: [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://tracker.bittor.pw:1337/announce",
+            "udp://public.popcorn-tracker.org:6969/announce",
+            "udp://tracker.dler.org:6969/announce",
+            "udp://exodus.desync.com:6969/announce",
+            "udp://open.demonii.com:1337/announce",
+            "udp://9.rarbg.com:2810/announce",
+            "udp://tracker.openbittorrent.com:6969/announce",
+            "udp://opentor.org:2710/announce",
+            "udp://tracker.pirateparty.gr:6969/announce",
+            "udp://tracker.tiny-vps.com:6969/announce",
+            "udp://tracker.cyberia.is:6969/announce",
+            "udp://explodie.org:6969/announce",
+            "http://tracker.opentrackr.org:1337/announce",
+            "http://bt.t-ru.org/ann?magnet",
+          ],
+        };
+
+        const e = torrentStream(torrentBuffer || magnet, opts);
+        const timeout = setTimeout(() => {
+          e.destroy();
+          reject(
+            new Error(
+              "Torrent timeout (90s) - no peers found. Try a torrent with more seeders.",
+            ),
+          );
+        }, 90000);
+
+        e.on("ready", () => {
+          clearTimeout(timeout);
+          console.log(
+            "Torrent ready:",
+            e.torrent.name,
+            "- files:",
+            e.files.length,
+          );
+          // Cache the engine for reuse
+          torrentEngines.set(e.infoHash, e);
+          resolve(e);
+        });
+
+        e.on("error", (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
       });
-
-      e.on("error", (err) => {
-        clearTimeout(timeout);
-        reject(err);
-      });
-    });
+    }
 
     // Find video files
     const videoFiles = engine.files
@@ -978,46 +1544,161 @@ app.post("/api/torrent2mp4", express.json(), async (req, res) => {
     const streamId = `ts_${engine.infoHash}_${fileIndex}`;
     const hlsDir = `/tmp/hls_${streamId}`;
 
-    // Check if already streaming
-    if (activeStreams.has(streamId)) {
-      engine.destroy(); // Don't need duplicate engine
-      const existing = activeStreams.get(streamId);
-      existing.lastUsed = Date.now();
-      return res.json({
-        streamId,
-        name: existing.name,
-        streamUrl: `/hls/${streamId}.m3u8`,
-        videoFiles,
-      });
+    // Stop any OTHER streams from this same torrent (episode switching)
+    for (const [sid, stream] of activeStreams.entries()) {
+      if (sid.startsWith(`ts_${engine.infoHash}_`) && sid !== streamId) {
+        console.log(`Stopping old episode stream: ${sid}`);
+        if (stream.ffmpeg) {
+          stream.ffmpeg.kill("SIGKILL");
+        }
+        if (stream.torrentStream) {
+          stream.torrentStream.destroy();
+        }
+        activeStreams.delete(sid);
+      }
     }
 
-    // Create HLS directory
-    ensureDir(hlsDir);
+    // Check if already streaming THIS episode
+    if (activeStreams.has(streamId)) {
+      const existing = activeStreams.get(streamId);
+      if (isStreamActive(existing)) {
+        // Don't destroy engine - it's cached for reuse
+        existing.lastUsed = Date.now();
+        return res.json({
+          streamId,
+          name: existing.name,
+          streamUrl: `/hls/${streamId}.m3u8`,
+          videoFiles,
+        });
+      }
+      activeStreams.delete(streamId);
+    }
 
-    // Start streaming: torrent-stream -> ffmpeg -> HLS
-    selectedFile.select(); // Prioritize this file
-    const fileStream = selectedFile.createReadStream();
+    // Create fresh HLS directory
+    resetDir(hlsDir);
+
+    // Start streaming: torrent-stream -> buffered pipe -> ffmpeg -> HLS
+    // Deselect ALL files first, then select only our file with priority
+    engine.files.forEach((f) => f.deselect());
+    selectedFile.select();
+    // Use critical priority for immediate download
+    selectedFile.select(0); // priority 0 = highest
 
     const ffmpegArgs = buildHlsArgs(
       path.join(hlsDir, "index.m3u8"),
       `/hls/${streamId}/`,
     );
+
+    console.log(
+      `Starting torrent stream: ${selectedFile.name}, size: ${selectedFile.length}, fileIndex: ${fileIndex}`,
+    );
+    console.log(
+      "All video files:",
+      videoFiles.map((f) => ({ name: f.name, index: f.index })),
+    );
+
     const ffmpeg = spawn("ffmpeg", ffmpegArgs, {
       stdio: ["pipe", "ignore", "pipe"],
     });
 
-    fileStream.pipe(ffmpeg.stdin);
-    fileStream.on("error", (err) => {
-      console.error("Torrent file stream error", err && err.message);
-      try {
-        ffmpeg.kill("SIGTERM");
-      } catch (e) {}
+    // Налаштування stdin з обробкою помилок
+    if (ffmpeg.stdin) {
+      ffmpeg.stdin.on("error", (err) => {
+        console.warn(`ffmpeg stdin error (non-fatal): ${err.message}`);
+      });
+    }
+
+    let bytesReceived = 0;
+    let lastLogTime = Date.now();
+    let isPaused = false;
+
+    const fileStream = selectedFile.createReadStream();
+
+    // Контроль потоку: пауза коли ffmpeg не встигає
+    fileStream.on("data", (chunk) => {
+      bytesReceived += chunk.length;
+
+      if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
+        const canContinue = ffmpeg.stdin.write(chunk);
+        if (!canContinue && !isPaused) {
+          isPaused = true;
+          fileStream.pause();
+        }
+      }
+
+      // Логування прогресу кожні 10 секунд
+      const now = Date.now();
+      if (now - lastLogTime > 10000) {
+        const percent = ((bytesReceived / selectedFile.length) * 100).toFixed(
+          1,
+        );
+        console.log(
+          `Torrent ${streamId}: ${(bytesReceived / 1024 / 1024).toFixed(1)}MB (${percent}%)`,
+        );
+        lastLogTime = now;
+      }
     });
 
+    // Відновлення потоку коли ffmpeg готовий приймати дані
+    if (ffmpeg.stdin) {
+      ffmpeg.stdin.on("drain", () => {
+        if (isPaused) {
+          isPaused = false;
+          fileStream.resume();
+        }
+      });
+    }
+
+    fileStream.on("end", () => {
+      console.log(
+        `Torrent ${streamId}: read complete, ${(bytesReceived / 1024 / 1024).toFixed(1)}MB`,
+      );
+      if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
+        ffmpeg.stdin.end();
+      }
+    });
+
+    fileStream.on("error", (err) => {
+      console.error(`Torrent file stream error: ${err.message}`);
+      // Даємо ffmpeg час обробити буфер перед закриттям
+      setTimeout(() => {
+        if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
+          ffmpeg.stdin.end();
+        }
+      }, 3000);
+    });
+
+    // Log progress after 5 seconds
+    setTimeout(() => {
+      console.log(
+        `Torrent ${streamId}: received ${(bytesReceived / 1024 / 1024).toFixed(2)} MB`,
+      );
+    }, 5000);
+
+    let ffmpegStarted = false;
     ffmpeg.stderr.on("data", (d) => {
       const msg = d.toString();
-      if (msg.includes("Error") || msg.includes("error")) {
-        console.error("ffmpeg:", msg.trim());
+      if (msg.includes("Output #0") && !ffmpegStarted) {
+        ffmpegStarted = true;
+        console.log(`Torrent HLS encoding started for ${streamId}`);
+      }
+      // Логуємо тільки серйозні помилки
+      if (msg.includes("Error") && !msg.includes("discarding")) {
+        console.error("ffmpeg error:", msg.trim());
+      }
+    });
+
+    ffmpeg.on("error", (err) => {
+      console.error("ffmpeg spawn error:", err);
+    });
+
+    ffmpeg.on("exit", (code, signal) => {
+      if (code !== 0 && code !== null) {
+        console.error(
+          `ffmpeg exited with code ${code}, signal ${signal} for ${streamId}`,
+        );
+      } else {
+        console.log(`ffmpeg completed for ${streamId}`);
       }
     });
 
@@ -1032,7 +1713,11 @@ app.post("/api/torrent2mp4", express.json(), async (req, res) => {
       hlsDir,
       ffmpegProcess: ffmpeg,
       name: selectedFile.name,
+      magnetURI: magnet, // Save for recovery
     });
+
+    // Save torrent state for crash recovery
+    saveTorrentState(engine.infoHash, magnet, fileIndex, streamId);
 
     console.log("Torrent HLS stream started:", streamId, selectedFile.name);
 
@@ -1103,7 +1788,8 @@ app.get("/hls/:file(index\\d+\\.ts)", (req, res) => {
   for (const [streamId, entry] of activeStreams.entries()) {
     const filePath = path.join(entry.hlsDir, file);
     if (fs.existsSync(filePath)) {
-      return res.sendFile(filePath);
+      markStreamUsed(entry);
+      return sendHlsFile(res, filePath);
     }
   }
   res.status(404).send("Segment not found");
@@ -1111,11 +1797,11 @@ app.get("/hls/:file(index\\d+\\.ts)", (req, res) => {
 
 app.get("/hls/:id/:file", (req, res) => {
   const id = req.params.id;
-  const entry = Array.from(activeStreams.entries()).find(([k]) =>
-    k.startsWith(id),
-  );
-  if (!entry) return res.status(404).send("Not found");
-  const { hlsDir } = entry[1];
+  const found = findStreamByPrefix(id);
+  if (!found) return res.status(404).send("Not found");
+  const { entry } = found;
+  markStreamUsed(entry);
+  const { hlsDir } = entry;
   let filePath = path.join(hlsDir, req.params.file);
   if (!fs.existsSync(filePath)) {
     // Fallback: шукаємо у варіантах якості
@@ -1130,36 +1816,168 @@ app.get("/hls/:id/:file", (req, res) => {
   }
   if (!fs.existsSync(filePath))
     return res.status(404).send("Segment not found");
-  res.sendFile(filePath);
+  sendHlsFile(res, filePath);
 });
 app.get("/hls/:id/:quality/:file", (req, res) => {
   const id = req.params.id;
   const quality = req.params.quality;
-  const entry = Array.from(activeStreams.entries()).find(([k]) =>
-    k.startsWith(id),
-  );
-  if (!entry) return res.status(404).send("Not found");
-  const { hlsDir } = entry[1];
+  const found = findStreamByPrefix(id);
+  if (!found) return res.status(404).send("Not found");
+  const { entry } = found;
+  markStreamUsed(entry);
+  const { hlsDir } = entry;
   const filePath = path.join(hlsDir + "_" + quality, req.params.file);
-  res.sendFile(filePath);
+  return sendHlsFile(res, filePath);
 });
 // Master adaptive playlist
-app.get("/hls/:id.m3u8", (req, res) => {
+// Check if a torrent stream is dead (no ffmpeg, incomplete playlist)
+function isStreamDead(entry, hlsDir) {
+  if (!entry) return false;
+  // If it has an active ffmpeg process, it's alive
+  if (entry.ffmpegProcess && !entry.ffmpegProcess.killed) return false;
+  // Check if playlist is complete
+  const playlistPath = path.join(hlsDir, "index.m3u8");
+  if (!fs.existsSync(playlistPath)) return true;
+  const playlist = fs.readFileSync(playlistPath, "utf8");
+  // If complete, not dead - just finished
+  if (playlist.includes("#EXT-X-ENDLIST")) return false;
+  // Incomplete playlist with no ffmpeg = dead
+  return true;
+}
+
+// Restart a dead torrent stream
+async function restartDeadStream(streamId, entry) {
+  const states = loadTorrentStates();
+  const state = states.find((s) => s.streamId === streamId);
+  if (!state || !state.magnetURI) {
+    console.log(`Cannot restart ${streamId} - no saved state`);
+    return false;
+  }
+
+  console.log(`Restarting dead stream: ${streamId}`);
+
+  try {
+    const { magnetURI, fileIndex } = state;
+    const hlsDir = `/tmp/hls_${streamId}`;
+
+    // Check if engine already exists
+    const infoHash = parseInfoHashFromMagnet(magnetURI);
+    let engine = infoHash ? torrentEngines.get(infoHash) : null;
+
+    if (!engine) {
+      engine = await new Promise((resolve, reject) => {
+        const opts = {
+          path: path.join(__dirname, "downloads"),
+          dht: true,
+          verify: false,
+          trackers: [
+            "udp://tracker.opentrackr.org:1337/announce",
+            "udp://open.stealth.si:80/announce",
+            "udp://tracker.torrent.eu.org:451/announce",
+            "udp://exodus.desync.com:6969/announce",
+          ],
+        };
+
+        const e = torrentStream(magnetURI, opts);
+        const timeout = setTimeout(() => {
+          e.destroy();
+          reject(new Error("Torrent restart timeout"));
+        }, 30000);
+
+        e.on("ready", () => {
+          clearTimeout(timeout);
+          torrentEngines.set(e.infoHash, e);
+          resolve(e);
+        });
+
+        e.on("error", (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+      });
+    }
+
+    const selectedFile = engine.files[fileIndex];
+    if (!selectedFile) return false;
+
+    engine.files.forEach((f) => f.deselect());
+    selectedFile.select();
+    selectedFile.select(0);
+
+    const ffmpegArgs = buildHlsArgs(
+      path.join(hlsDir, "index.m3u8"),
+      `/hls/${streamId}/`,
+    );
+
+    const ffmpeg = spawn("ffmpeg", ffmpegArgs, {
+      stdio: ["pipe", "ignore", "pipe"],
+    });
+
+    if (ffmpeg.stdin) {
+      ffmpeg.stdin.on("error", () => {});
+    }
+
+    const fileStream = selectedFile.createReadStream();
+    fileStream.on("data", (chunk) => {
+      if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
+        ffmpeg.stdin.write(chunk);
+      }
+    });
+    fileStream.on("end", () => {
+      if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
+        ffmpeg.stdin.end();
+      }
+    });
+
+    // Update entry
+    entry.engine = engine;
+    entry.ffmpegProcess = ffmpeg;
+    entry.magnetURI = magnetURI;
+    entry.lastUsed = Date.now();
+
+    console.log(`Restarted stream: ${streamId}`);
+    return true;
+  } catch (err) {
+    console.error(`Failed to restart ${streamId}:`, err.message);
+    return false;
+  }
+}
+
+app.get("/hls/:id.m3u8", async (req, res) => {
   const id = req.params.id;
-  const entry = Array.from(activeStreams.entries()).find(([k]) =>
-    k.startsWith(id),
-  );
-  if (!entry) return res.status(404).send("Not found");
-  const { hlsDir } = entry[1];
+  const found = findStreamByPrefix(id);
+  if (!found) return res.status(404).send("Not found");
+  const { id: streamId, entry } = found;
+  markStreamUsed(entry);
+  const { hlsDir } = entry;
   const filePath = path.join(hlsDir, "index.m3u8");
-  res.sendFile(filePath);
+
+  // Check if stream is dead and try to restart it
+  if (isStreamDead(entry, hlsDir)) {
+    console.log(`Stream ${streamId} appears dead, attempting restart...`);
+    await restartDeadStream(streamId, entry);
+  }
+
+  // Wait for the playlist file to be created (max 30 seconds)
+  let attempts = 0;
+  while (!fs.existsSync(filePath) && attempts < 60) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    attempts++;
+  }
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(503).send("Stream not ready yet. Please retry.");
+  }
+  sendHlsFile(res, filePath);
 });
 
 // --- Torrent to mp4 streaming endpoint ---
 // (Deprecated duplicate block removed: streaming served via HLS endpoint above)
 
-app.listen(PORT, HOST, () => {
+app.listen(PORT, HOST, async () => {
   console.log(`Server running on http://${HOST}:${PORT}`);
   // Scan for any leftover HLS directories from previous runs
   scanExistingHlsStreams();
+  // Restore any interrupted torrent streams
+  await restoreTorrentStreams();
 });

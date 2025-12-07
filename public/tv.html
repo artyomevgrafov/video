@@ -1,517 +1,810 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TV Receiver</title>
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@0.294.0/dist/umd/lucide.min.js"></script>
-  <!-- Inter font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- HLS.js for m3u8 streams -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7"></script>
-  <!-- WebTorrent for magnet links -->
-  <script src="https://cdn.jsdelivr.net/npm/webtorrent@2.5.1/webtorrent.min.js"></script>
-  <style>
-    :root {
-      /* Fibonacci spacing */
-      --sp-1: 1px;
-      --sp-2: 2px;
-      --sp-3: 3px;
-      --sp-5: 5px;
-      --sp-8: 8px;
-      --sp-13: 13px;
-      --sp-21: 21px;
-      --sp-34: 34px;
-      --sp-55: 55px;
-      --sp-89: 89px;
-      --sp-144: 144px;
-      
-      /* Golden ratio */
-      --phi: 1.618;
-      
-      /* Swiss palette */
-      --black: #0a0a0a;
-      --white: #fafafa;
-      --gray-600: #525252;
-      --gray-700: #404040;
-      --gray-800: #262626;
-      --accent: #ff3b30;
-      --success: #30d158;
-      
-      /* Typography */
-      --text-xs: 11px;
-      --text-sm: 13px;
-      --text-base: 16px;
-      --text-lg: 21px;
-      --text-xl: 26px;
-      --text-2xl: 34px;
-      --text-3xl: 42px;
-    }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TV Receiver</title>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.294.0/dist/umd/lucide.min.js"></script>
+    <!-- Inter font -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- HLS.js for m3u8 streams -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7"></script>
+    <!-- WebTorrent for magnet links -->
+    <script src="https://cdn.jsdelivr.net/npm/webtorrent@2.5.1/webtorrent.min.js"></script>
+    <style>
+      :root {
+        /* Fibonacci spacing */
+        --sp-1: 1px;
+        --sp-2: 2px;
+        --sp-3: 3px;
+        --sp-5: 5px;
+        --sp-8: 8px;
+        --sp-13: 13px;
+        --sp-21: 21px;
+        --sp-34: 34px;
+        --sp-55: 55px;
+        --sp-89: 89px;
+        --sp-144: 144px;
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+        /* Golden ratio */
+        --phi: 1.618;
 
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-      background: var(--black);
-      color: var(--white);
-      height: 100vh;
-      overflow: hidden;
-      -webkit-font-smoothing: antialiased;
-      cursor: none;
-    }
+        /* Swiss palette */
+        --black: #0a0a0a;
+        --white: #fafafa;
+        --gray-600: #525252;
+        --gray-700: #404040;
+        --gray-800: #262626;
+        --accent: #ff3b30;
+        --success: #30d158;
 
-    body.show-cursor {
-      cursor: default;
-    }
+        /* Typography */
+        --text-xs: 11px;
+        --text-sm: 13px;
+        --text-base: 16px;
+        --text-lg: 21px;
+        --text-xl: 26px;
+        --text-2xl: 34px;
+        --text-3xl: 42px;
+      }
 
-    /* Fullscreen video player */
-    #player {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: var(--black);
-    }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-    /* Idle state - waiting for stream */
-    .idle-state {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: var(--black);
-    }
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Helvetica Neue",
+          sans-serif;
+        background: var(--black);
+        color: var(--white);
+        height: 100vh;
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+        cursor: none;
+      }
 
-    .idle-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: var(--sp-21);
-      text-align: center;
-    }
+      body.show-cursor {
+        cursor: default;
+      }
 
-    .idle-icon {
-      width: var(--sp-89);
-      height: var(--sp-89);
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 2px solid var(--gray-700);
-      animation: breathe 3s ease-in-out infinite;
-    }
+      /* Fullscreen video player */
+      #player {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: var(--black);
+      }
 
-    .idle-icon i {
-      width: var(--sp-34);
-      height: var(--sp-34);
-      color: var(--gray-600);
-    }
+      /* Idle state - waiting for stream */
+      .idle-state {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: var(--black);
+      }
 
-    @keyframes breathe {
-      0%, 100% { border-color: var(--gray-700); }
-      50% { border-color: var(--gray-600); }
-    }
+      .idle-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--sp-21);
+        text-align: center;
+      }
 
-    .idle-title {
-      font-size: var(--text-2xl);
-      font-weight: 600;
-      letter-spacing: -0.02em;
-    }
+      .idle-icon {
+        width: var(--sp-89);
+        height: var(--sp-89);
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid var(--gray-700);
+        animation: breathe 3s ease-in-out infinite;
+      }
 
-    .idle-subtitle {
-      font-size: var(--text-sm);
-      color: var(--gray-600);
-      font-weight: 400;
-    }
+      .idle-icon i {
+        width: var(--sp-34);
+        height: var(--sp-34);
+        color: var(--gray-600);
+      }
 
-    .idle-url {
-      margin-top: var(--sp-21);
-      padding: var(--sp-13) var(--sp-34);
-      background: var(--gray-800);
-      font-family: 'SF Mono', Monaco, monospace;
-      font-size: var(--text-base);
-      border-left: 2px solid var(--accent);
-    }
+      @keyframes breathe {
+        0%,
+        100% {
+          border-color: var(--gray-700);
+        }
+        50% {
+          border-color: var(--gray-600);
+        }
+      }
 
-    /* Status indicator */
-    .status-bar {
-      position: fixed;
-      bottom: var(--sp-34);
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: var(--sp-8);
-      padding: var(--sp-8) var(--sp-21);
-      background: var(--gray-800);
-      font-size: var(--text-xs);
-      color: var(--gray-600);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      opacity: 1;
-      transition: opacity 0.3s;
-    }
+      .idle-title {
+        font-size: var(--text-2xl);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
 
-    .status-dot {
-      width: var(--sp-8);
-      height: var(--sp-8);
-      background: var(--success);
-      border-radius: 50%;
-    }
+      .idle-subtitle {
+        font-size: var(--text-sm);
+        color: var(--gray-600);
+        font-weight: 400;
+      }
 
-    /* Loading overlay */
-    .loading-overlay {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: rgba(10, 10, 10, 0.95);
-      gap: var(--sp-21);
-      z-index: 100;
-    }
+      .idle-url {
+        margin-top: var(--sp-21);
+        padding: var(--sp-13) var(--sp-34);
+        background: var(--gray-800);
+        font-family: "SF Mono", Monaco, monospace;
+        font-size: var(--text-base);
+        border-left: 2px solid var(--accent);
+      }
 
-    .loading-spinner {
-      width: var(--sp-55);
-      height: var(--sp-55);
-      border: 2px solid var(--gray-700);
-      border-top-color: var(--white);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
+      /* Status indicator */
+      .status-bar {
+        position: fixed;
+        bottom: var(--sp-34);
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: var(--sp-8);
+        padding: var(--sp-8) var(--sp-21);
+        background: var(--gray-800);
+        font-size: var(--text-xs);
+        color: var(--gray-600);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        opacity: 1;
+        transition: opacity 0.3s;
+      }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+      .status-dot {
+        width: var(--sp-8);
+        height: var(--sp-8);
+        background: var(--success);
+        border-radius: 50%;
+      }
 
-    .loading-text {
-      font-size: var(--text-sm);
-      color: var(--gray-600);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
+      /* Loading overlay */
+      .loading-overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(10, 10, 10, 0.95);
+        gap: var(--sp-21);
+        z-index: 100;
+      }
 
-    /* Control overlay */
-    .control-overlay {
-      position: fixed;
-      inset: 0;
-      background: linear-gradient(transparent 60%, rgba(0,0,0,0.8));
-      opacity: 0;
-      transition: opacity 0.3s;
-      pointer-events: none;
-      z-index: 50;
-    }
+      .loading-spinner {
+        width: var(--sp-55);
+        height: var(--sp-55);
+        border: 2px solid var(--gray-700);
+        border-top-color: var(--white);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
 
-    body.show-controls .control-overlay {
-      opacity: 1;
-      pointer-events: auto;
-    }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
-    .control-bar {
-      position: absolute;
-      bottom: var(--sp-34);
-      left: var(--sp-34);
-      right: var(--sp-34);
-      display: flex;
-      align-items: center;
-      gap: var(--sp-21);
-    }
+      .loading-text {
+        font-size: var(--text-sm);
+        color: var(--gray-600);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
 
-    .control-btn {
-      width: var(--sp-55);
-      height: var(--sp-55);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: transparent;
-      border: 1px solid var(--gray-700);
-      color: var(--white);
-      cursor: pointer;
-      transition: border-color 0.2s;
-    }
+      /* Control overlay */
+      .control-overlay {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(transparent 60%, rgba(0, 0, 0, 0.8));
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+        z-index: 50;
+      }
 
-    .control-btn:hover {
-      border-color: var(--white);
-    }
+      body.show-controls .control-overlay {
+        opacity: 1;
+        pointer-events: auto;
+      }
 
-    .control-btn i {
-      width: var(--sp-21);
-      height: var(--sp-21);
-    }
+      .control-bar {
+        position: absolute;
+        bottom: var(--sp-34);
+        left: var(--sp-34);
+        right: var(--sp-34);
+        display: flex;
+        align-items: center;
+        gap: var(--sp-21);
+      }
 
-    .progress-bar {
-      flex: 1;
-      height: var(--sp-3);
-      background: var(--gray-700);
-      cursor: pointer;
-    }
+      .control-btn {
+        width: var(--sp-55);
+        height: var(--sp-55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: 1px solid var(--gray-700);
+        color: var(--white);
+        cursor: pointer;
+        transition: border-color 0.2s;
+      }
 
-    .progress-fill {
-      height: 100%;
-      background: var(--accent);
-      width: 0%;
-      transition: width 0.1s;
-    }
+      .control-btn:hover {
+        border-color: var(--white);
+      }
 
-    .time-display {
-      font-size: var(--text-sm);
-      font-family: 'SF Mono', Monaco, monospace;
-      color: var(--gray-600);
-      min-width: 100px;
-      text-align: right;
-    }
+      .control-btn i {
+        width: var(--sp-21);
+        height: var(--sp-21);
+      }
 
-    /* Torrent stats */
-    .torrent-stats {
-      position: fixed;
-      top: var(--sp-21);
-      right: var(--sp-21);
-      padding: var(--sp-13) var(--sp-21);
-      background: var(--gray-800);
-      font-size: var(--text-xs);
-      color: var(--gray-600);
-      font-family: 'SF Mono', Monaco, monospace;
-      z-index: 60;
-      display: none;
-    }
+      .progress-bar {
+        flex: 1;
+        height: var(--sp-3);
+        background: var(--gray-700);
+        cursor: pointer;
+      }
 
-    .torrent-stats.active {
-      display: block;
-    }
+      .progress-fill {
+        height: 100%;
+        background: var(--accent);
+        width: 0%;
+        transition: width 0.1s;
+      }
 
-    /* Hidden elements */
-    .hidden {
-      display: none !important;
-    }
-  </style>
-</head>
-<body>
-  <!-- Idle screen -->
-  <div class="idle-state" id="idle">
-    <div class="idle-grid">
-      <div class="idle-icon">
-        <i data-lucide="tv"></i>
+      .time-display {
+        font-size: var(--text-sm);
+        font-family: "SF Mono", Monaco, monospace;
+        color: var(--gray-600);
+        min-width: 100px;
+        text-align: right;
+      }
+
+      /* Torrent stats */
+      .torrent-stats {
+        position: fixed;
+        top: var(--sp-21);
+        right: var(--sp-21);
+        padding: var(--sp-13) var(--sp-21);
+        background: var(--gray-800);
+        font-size: var(--text-xs);
+        color: var(--gray-600);
+        font-family: "SF Mono", Monaco, monospace;
+        z-index: 60;
+        display: none;
+      }
+
+      .torrent-stats.active {
+        display: block;
+      }
+
+      /* Episode selector */
+      .episode-panel {
+        position: fixed;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 320px;
+        background: rgba(10, 10, 10, 0.95);
+        border-left: 1px solid var(--gray-800);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .episode-panel.active {
+        transform: translateX(0);
+      }
+
+      .episode-header {
+        padding: var(--sp-21);
+        border-bottom: 1px solid var(--gray-800);
+      }
+
+      .episode-title {
+        font-size: var(--text-lg);
+        font-weight: 600;
+        margin-bottom: var(--sp-5);
+      }
+
+      .episode-subtitle {
+        font-size: var(--text-sm);
+        color: var(--gray-500);
+      }
+
+      .episode-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: var(--sp-13);
+      }
+
+      .episode-item {
+        padding: var(--sp-13) var(--sp-21);
+        margin-bottom: var(--sp-8);
+        background: var(--gray-800);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+
+      .episode-item:hover {
+        border-color: var(--gray-600);
+      }
+
+      .episode-item.active {
+        border-color: var(--accent);
+        background: var(--gray-700);
+      }
+
+      .episode-item-title {
+        font-size: var(--text-sm);
+        margin-bottom: var(--sp-3);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .episode-item-meta {
+        font-size: var(--text-xs);
+        color: var(--gray-500);
+      }
+
+      .episode-close {
+        position: absolute;
+        top: var(--sp-21);
+        right: var(--sp-21);
+        width: var(--sp-34);
+        height: var(--sp-34);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: 1px solid var(--gray-700);
+        color: var(--white);
+        cursor: pointer;
+      }
+
+      /* Skip buttons */
+      .skip-btn {
+        width: var(--sp-55);
+        height: var(--sp-55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: 1px solid var(--gray-700);
+        color: var(--white);
+        cursor: pointer;
+        transition: border-color 0.2s;
+        font-size: var(--text-sm);
+        font-weight: 600;
+      }
+
+      .skip-btn:hover {
+        border-color: var(--white);
+      }
+
+      /* Media title */
+      .media-title {
+        position: fixed;
+        top: var(--sp-21);
+        left: var(--sp-21);
+        right: var(--sp-89);
+        font-size: var(--text-lg);
+        font-weight: 500;
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 60;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+      }
+
+      body.show-controls .media-title {
+        opacity: 1;
+      }
+
+      /* Episode toggle button */
+      .episode-toggle {
+        position: fixed;
+        top: var(--sp-21);
+        right: var(--sp-21);
+        width: var(--sp-55);
+        height: var(--sp-55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: var(--gray-800);
+        border: 1px solid var(--gray-700);
+        color: var(--white);
+        cursor: pointer;
+        z-index: 70;
+        transition: opacity 0.3s;
+        opacity: 0;
+      }
+
+      .episode-toggle.has-episodes {
+        display: flex;
+      }
+
+      body.show-controls .episode-toggle {
+        opacity: 1;
+      }
+
+      .episode-toggle i {
+        width: var(--sp-21);
+        height: var(--sp-21);
+      }
+
+      /* Hidden elements */
+      .hidden {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Idle screen -->
+    <div class="idle-state" id="idle">
+      <div class="idle-grid">
+        <div class="idle-icon">
+          <i data-lucide="tv"></i>
+        </div>
+        <h1 class="idle-title">TV Receiver</h1>
+        <p class="idle-subtitle">Waiting for stream from control panel</p>
+        <div class="idle-url" id="serverUrl"></div>
       </div>
-      <h1 class="idle-title">TV Receiver</h1>
-      <p class="idle-subtitle">Waiting for stream from control panel</p>
-      <div class="idle-url" id="serverUrl"></div>
     </div>
-  </div>
 
-  <!-- Video player -->
-  <video id="player" class="hidden" playsinline></video>
+    <!-- Video player -->
+    <video id="player" class="hidden" playsinline></video>
 
-  <!-- Loading overlay -->
-  <div class="loading-overlay hidden" id="loading">
-    <div class="loading-spinner"></div>
-    <div class="loading-text" id="loadingText">Loading</div>
-  </div>
+    <!-- Loading overlay -->
+    <div class="loading-overlay hidden" id="loading">
+      <div class="loading-spinner"></div>
+      <div class="loading-text" id="loadingText">Loading</div>
+    </div>
 
-  <!-- Control overlay -->
-  <div class="control-overlay" id="controls">
-    <div class="control-bar">
-      <button class="control-btn" id="playPause">
-        <i data-lucide="play" id="playIcon"></i>
-      </button>
-      <div class="progress-bar" id="progressBar">
-        <div class="progress-fill" id="progressFill"></div>
+    <!-- Media title -->
+    <div class="media-title" id="mediaTitle"></div>
+
+    <!-- Episode toggle button -->
+    <button class="episode-toggle" id="episodeToggle">
+      <i data-lucide="list"></i>
+    </button>
+
+    <!-- Control overlay -->
+    <div class="control-overlay" id="controls">
+      <div class="control-bar">
+        <button class="skip-btn" id="skipBack">-10</button>
+        <button class="control-btn" id="playPause">
+          <i data-lucide="play" id="playIcon"></i>
+        </button>
+        <button class="skip-btn" id="skipForward">+10</button>
+        <div class="progress-bar" id="progressBar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
+        <button class="control-btn" id="fullscreen">
+          <i data-lucide="maximize"></i>
+        </button>
       </div>
-      <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
-      <button class="control-btn" id="fullscreen">
-        <i data-lucide="maximize"></i>
-      </button>
     </div>
-  </div>
 
-  <!-- Torrent stats -->
-  <div class="torrent-stats" id="torrentStats"></div>
+    <!-- Episode panel -->
+    <div class="episode-panel" id="episodePanel">
+      <div class="episode-header">
+        <div class="episode-title" id="episodePanelTitle">Епізоди</div>
+        <div class="episode-subtitle" id="episodePanelSubtitle"></div>
+        <button class="episode-close" id="episodeClose">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="episode-list" id="episodeList"></div>
+    </div>
 
-  <!-- Status bar -->
-  <div class="status-bar" id="status">
-    <span class="status-dot"></span>
-    <span id="statusText">Connected</span>
-  </div>
+    <!-- Torrent stats -->
+    <div class="torrent-stats" id="torrentStats"></div>
 
-  <script>
-    lucide.createIcons();
+    <!-- Status bar -->
+    <div class="status-bar" id="status">
+      <span class="status-dot"></span>
+      <span id="statusText">Connected</span>
+    </div>
 
-    const idle = document.getElementById('idle');
-    const player = document.getElementById('player');
-    const loading = document.getElementById('loading');
-    const loadingText = document.getElementById('loadingText');
-    const statusText = document.getElementById('statusText');
-    const serverUrl = document.getElementById('serverUrl');
-    const controls = document.getElementById('controls');
-    const playPause = document.getElementById('playPause');
-    const playIcon = document.getElementById('playIcon');
-    const progressBar = document.getElementById('progressBar');
-    const progressFill = document.getElementById('progressFill');
-    const timeDisplay = document.getElementById('timeDisplay');
-    const fullscreenBtn = document.getElementById('fullscreen');
-    const torrentStats = document.getElementById('torrentStats');
+    <script>
+      lucide.createIcons();
 
-    serverUrl.textContent = location.origin;
+      const idle = document.getElementById("idle");
+      const player = document.getElementById("player");
+      const loading = document.getElementById("loading");
+      const loadingText = document.getElementById("loadingText");
+      const statusText = document.getElementById("statusText");
+      const serverUrl = document.getElementById("serverUrl");
+      const controls = document.getElementById("controls");
+      const playPause = document.getElementById("playPause");
+      const playIcon = document.getElementById("playIcon");
+      const progressBar = document.getElementById("progressBar");
+      const progressFill = document.getElementById("progressFill");
+      const timeDisplay = document.getElementById("timeDisplay");
+      const fullscreenBtn = document.getElementById("fullscreen");
+      const torrentStats = document.getElementById("torrentStats");
+      const mediaTitle = document.getElementById("mediaTitle");
+      const episodeToggle = document.getElementById("episodeToggle");
+      const episodePanel = document.getElementById("episodePanel");
+      const episodeList = document.getElementById("episodeList");
+      const episodeClose = document.getElementById("episodeClose");
+      const episodePanelTitle = document.getElementById("episodePanelTitle");
+      const episodePanelSubtitle = document.getElementById(
+        "episodePanelSubtitle",
+      );
+      const skipBack = document.getElementById("skipBack");
+      const skipForward = document.getElementById("skipForward");
 
-    let hls = null;
-    let webtorrent = null;
-    let controlTimeout = null;
-    let currentUrl = null;
+      serverUrl.textContent = location.origin;
 
-    // SSE connection for receiving URLs
-    function connectSSE() {
-      const evtSource = new EventSource('/tv/listen');
-      
-      evtSource.onopen = () => {
-        statusText.textContent = 'Connected';
-      };
-      
-      evtSource.onmessage = (e) => {
+      let hls = null;
+      let webtorrent = null;
+      let controlTimeout = null;
+      let currentUrl = null;
+      let currentEpisodes = [];
+      let currentEpisodeIndex = 0;
+      let currentStreamId = null;
+
+      // SSE connection for receiving URLs
+      function connectSSE() {
+        const evtSource = new EventSource("/tv/listen");
+
+        evtSource.onopen = () => {
+          statusText.textContent = "Connected";
+        };
+
+        evtSource.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            if (data.url) {
+              loadUrl(data.url, data);
+            } else if (data.action === "clear") {
+              stopPlayback();
+            } else if (data.action === "seek") {
+              // Seek to absolute position (seconds)
+              if (player && !isNaN(data.value)) {
+                player.currentTime = Math.max(
+                  0,
+                  Math.min(data.value, player.duration || Infinity),
+                );
+                showControls();
+              }
+            } else if (data.action === "seekRelative") {
+              // Seek relative (positive = forward, negative = backward)
+              if (player && !isNaN(data.value)) {
+                player.currentTime = Math.max(
+                  0,
+                  Math.min(
+                    player.currentTime + data.value,
+                    player.duration || Infinity,
+                  ),
+                );
+                showControls();
+              }
+            } else if (data.action === "pause") {
+              if (player) player.pause();
+              showControls();
+            } else if (data.action === "play") {
+              if (player) player.play();
+              showControls();
+            } else if (data.action === "togglePlay") {
+              if (player) {
+                if (player.paused) player.play();
+                else player.pause();
+              }
+              showControls();
+            }
+          } catch (err) {
+            console.error("SSE parse error:", err);
+          }
+        };
+
+        evtSource.onerror = () => {
+          statusText.textContent = "Reconnecting...";
+          evtSource.close();
+          setTimeout(connectSSE, 3000);
+        };
+      }
+
+      function stopPlayback() {
+        if (hls) {
+          hls.destroy();
+          hls = null;
+        }
+        if (webtorrent) {
+          webtorrent.destroy();
+          webtorrent = null;
+        }
+        player.src = "";
+        player.classList.add("hidden");
+        idle.classList.remove("hidden");
+        torrentStats.classList.remove("active");
+        currentUrl = null;
+      }
+
+      function showLoading(text = "Loading") {
+        loadingText.textContent = text;
+        loading.classList.remove("hidden");
+      }
+
+      function hideLoading() {
+        loading.classList.add("hidden");
+      }
+
+      async function loadUrl(url, metadata = {}) {
+        if (url === currentUrl) return;
+        currentUrl = url;
+
+        stopPlayback();
+        showLoading();
+        idle.classList.add("hidden");
+        player.classList.remove("hidden");
+
+        // Handle metadata (episodes, title, etc.)
+        if (metadata.name) {
+          mediaTitle.textContent = metadata.name;
+        }
+        if (metadata.episodes && metadata.episodes.length > 1) {
+          currentEpisodes = metadata.episodes;
+          currentEpisodeIndex = metadata.currentIndex || 0;
+          currentStreamId = metadata.streamId;
+          episodeToggle.classList.add("has-episodes");
+          episodePanelTitle.textContent = metadata.name || "Епізоди";
+          episodePanelSubtitle.textContent = `${currentEpisodes.length} файлів`;
+          renderEpisodeList();
+        } else {
+          currentEpisodes = [];
+          episodeToggle.classList.remove("has-episodes");
+        }
+
+        const lower = url.toLowerCase();
+
         try {
-          const data = JSON.parse(e.data);
-          if (data.url) {
-            loadUrl(data.url);
-          } else if (data.clear) {
-            stopPlayback();
+          if (url.startsWith("magnet:")) {
+            await loadTorrent(url);
+          } else if (lower.endsWith(".torrent")) {
+            // Convert .torrent URL to magnet
+            await loadTorrentFile(url);
+          } else if (lower.endsWith(".m3u8") || lower.includes(".m3u8")) {
+            loadHLS(url, metadata.name);
+          } else if (
+            lower.endsWith(".mp4") ||
+            lower.endsWith(".webm") ||
+            lower.endsWith(".mov") ||
+            lower.endsWith(".mkv")
+          ) {
+            loadDirect(url);
+          } else if (/youtube|youtu\.be/.test(lower)) {
+            loadYouTube(url);
+          } else if (url.startsWith("http://") || url.startsWith("https://")) {
+            // Website URL - open in new window (can't iframe due to X-Frame-Options)
+            loadWebsite(url);
+          } else {
+            // Try as direct video
+            loadDirect(url);
           }
         } catch (err) {
-          console.error('SSE parse error:', err);
-        }
-      };
-      
-      evtSource.onerror = () => {
-        statusText.textContent = 'Reconnecting...';
-        evtSource.close();
-        setTimeout(connectSSE, 3000);
-      };
-    }
-
-    function stopPlayback() {
-      if (hls) {
-        hls.destroy();
-        hls = null;
-      }
-      if (webtorrent) {
-        webtorrent.destroy();
-        webtorrent = null;
-      }
-      player.src = '';
-      player.classList.add('hidden');
-      idle.classList.remove('hidden');
-      torrentStats.classList.remove('active');
-      currentUrl = null;
-    }
-
-    function showLoading(text = 'Loading') {
-      loadingText.textContent = text;
-      loading.classList.remove('hidden');
-    }
-
-    function hideLoading() {
-      loading.classList.add('hidden');
-    }
-
-    async function loadUrl(url) {
-      if (url === currentUrl) return;
-      currentUrl = url;
-      
-      stopPlayback();
-      showLoading();
-      idle.classList.add('hidden');
-      player.classList.remove('hidden');
-
-      const lower = url.toLowerCase();
-
-      try {
-        if (url.startsWith('magnet:')) {
-          await loadTorrent(url);
-        } else if (lower.endsWith('.torrent')) {
-          // Convert .torrent URL to magnet
-          await loadTorrentFile(url);
-        } else if (lower.endsWith('.m3u8') || lower.includes('.m3u8')) {
-          loadHLS(url);
-        } else if (lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov') || lower.endsWith('.mkv')) {
-          loadDirect(url);
-        } else if (/youtube|youtu\.be/.test(lower)) {
-          loadYouTube(url);
-        } else if (url.startsWith('http://') || url.startsWith('https://')) {
-          // Website URL - open in new window (can't iframe due to X-Frame-Options)
-          loadWebsite(url);
-        } else {
-          // Try as direct video
-          loadDirect(url);
-        }
-      } catch (err) {
-        console.error('Load error:', err);
-        hideLoading();
-        statusText.textContent = 'Error: ' + err.message;
-      }
-    }
-
-    function loadDirect(url) {
-      player.src = url;
-      player.load();
-      player.play().catch(() => {});
-      hideLoading();
-    }
-
-    function loadHLS(url) {
-      if (Hls.isSupported()) {
-        hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: true
-        });
-        hls.loadSource(url);
-        hls.attachMedia(player);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          player.play().catch(() => {});
+          console.error("Load error:", err);
           hideLoading();
-        });
-        hls.on(Hls.Events.ERROR, (e, data) => {
-          if (data.fatal) {
-            statusText.textContent = 'HLS Error';
+          statusText.textContent = "Error: " + err.message;
+        }
+      }
+
+      function loadDirect(url) {
+        player.src = url;
+        player.load();
+        player.play().catch(() => {});
+        hideLoading();
+      }
+
+      async function loadHLS(url, title) {
+        if (title) {
+          mediaTitle.textContent = title;
+        }
+
+        // Check for saved progress
+        let resumePosition = 0;
+        if (currentStreamId) {
+          try {
+            const resp = await fetch(`/tv/progress/${currentStreamId}`);
+            const progress = await resp.json();
+            if (progress.position > 10) {
+              resumePosition = progress.position;
+            }
+          } catch (e) {}
+        }
+
+        if (Hls.isSupported()) {
+          hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: false,
+            maxBufferLength: 60,
+            maxMaxBufferLength: 120,
+          });
+          hls.loadSource(url);
+          hls.attachMedia(player);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            if (resumePosition > 0) {
+              player.currentTime = resumePosition;
+            }
+            player.play().catch(() => {});
             hideLoading();
-          }
-        });
-      } else if (player.canPlayType('application/vnd.apple.mpegurl')) {
-        // Safari native HLS
-        loadDirect(url);
+          });
+          hls.on(Hls.Events.ERROR, (e, data) => {
+            if (data.fatal) {
+              statusText.textContent = "HLS Error";
+              hideLoading();
+              // Auto-retry on network errors
+              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                setTimeout(() => {
+                  hls.startLoad();
+                }, 2000);
+              }
+            }
+          });
+        } else if (player.canPlayType("application/vnd.apple.mpegurl")) {
+          // Safari native HLS
+          loadDirect(url);
+        }
       }
-    }
 
-    async function loadTorrentFile(torrentUrl) {
-      loadingText.textContent = 'Converting torrent to magnet...';
-      
-      try {
-        const resp = await fetch(`/api/torrent2magnet?url=${encodeURIComponent(torrentUrl)}`);
-        const data = await resp.json();
-        
-        if (data.error) throw new Error(data.error);
-        
-        statusText.textContent = `Torrent: ${data.name}`;
-        await loadTorrent(data.magnet);
-      } catch (err) {
-        hideLoading();
-        statusText.textContent = 'Error: ' + err.message;
+      async function loadTorrentFile(torrentUrl) {
+        loadingText.textContent = "Converting torrent to magnet...";
+
+        try {
+          const resp = await fetch(
+            `/api/torrent2magnet?url=${encodeURIComponent(torrentUrl)}`,
+          );
+          const data = await resp.json();
+
+          if (data.error) throw new Error(data.error);
+
+          statusText.textContent = `Torrent: ${data.name}`;
+          await loadTorrent(data.magnet);
+        } catch (err) {
+          hideLoading();
+          statusText.textContent = "Error: " + err.message;
+        }
       }
-    }
 
-    async function loadTorrent(magnetUri) {
-      loadingText.textContent = 'Connecting to peers...';
-      
-      // Check if WebTorrent is available
-      if (typeof WebTorrent === 'undefined') {
-        hideLoading();
-        statusText.textContent = 'WebTorrent not supported on this browser';
-        // Show error on screen
-        idle.innerHTML = `
+      async function loadTorrent(magnetUri) {
+        loadingText.textContent = "Connecting to peers...";
+
+        // Check if WebTorrent is available
+        if (typeof WebTorrent === "undefined") {
+          hideLoading();
+          statusText.textContent = "WebTorrent not supported on this browser";
+          // Show error on screen
+          idle.innerHTML = `
           <div class="idle-grid">
             <div class="idle-icon" style="border-color: var(--accent);">
               <i data-lucide="alert-circle"></i>
@@ -520,56 +813,66 @@
             <p class="idle-subtitle">This browser doesn't support WebTorrent streaming.<br>Try Chrome or Firefox on a computer.</p>
           </div>
         `;
-        idle.classList.remove('hidden');
-        player.classList.add('hidden');
-        lucide.createIcons();
-        return;
-      }
-      
-      try {
-        webtorrent = new WebTorrent();
-        
-        webtorrent.add(magnetUri, { 
-          announce: [
-            'wss://tracker.openwebtorrent.com',
-            'wss://tracker.btorrent.xyz',
-            'wss://tracker.webtorrent.dev',
-            'wss://tracker.files.fm:7073/announce'
-          ]
-        }, (torrent) => {
-          // Find video file - prefer mp4/webm which browsers can play
-          const file = torrent.files.find(f => {
-            const name = f.name.toLowerCase();
-            return name.endsWith('.mp4') || name.endsWith('.webm');
-          }) || torrent.files.find(f => {
-            const name = f.name.toLowerCase();
-            return name.endsWith('.mkv') || name.endsWith('.avi');
-          }) || torrent.files[0];
-          
-          if (!file) {
-            hideLoading();
-            statusText.textContent = 'No video files in torrent';
-            return;
-          }
-          
-          loadingText.textContent = `Loading: ${file.name}`;
-          statusText.textContent = `File: ${file.name}`;
-          
-          // Create blob URL instead of renderTo for better compatibility
-          file.getBlobURL((err, url) => {
-            if (err) {
-              hideLoading();
-              statusText.textContent = 'Error creating video: ' + err.message;
-              return;
-            }
-            
-            player.src = url;
-            player.play().then(() => {
-              hideLoading();
-            }).catch(playErr => {
-              hideLoading();
-              // Show unsupported format message
-              idle.innerHTML = `
+          idle.classList.remove("hidden");
+          player.classList.add("hidden");
+          lucide.createIcons();
+          return;
+        }
+
+        try {
+          webtorrent = new WebTorrent();
+
+          webtorrent.add(
+            magnetUri,
+            {
+              announce: [
+                "wss://tracker.openwebtorrent.com",
+                "wss://tracker.btorrent.xyz",
+                "wss://tracker.webtorrent.dev",
+                "wss://tracker.files.fm:7073/announce",
+              ],
+            },
+            (torrent) => {
+              // Find video file - prefer mp4/webm which browsers can play
+              const file =
+                torrent.files.find((f) => {
+                  const name = f.name.toLowerCase();
+                  return name.endsWith(".mp4") || name.endsWith(".webm");
+                }) ||
+                torrent.files.find((f) => {
+                  const name = f.name.toLowerCase();
+                  return name.endsWith(".mkv") || name.endsWith(".avi");
+                }) ||
+                torrent.files[0];
+
+              if (!file) {
+                hideLoading();
+                statusText.textContent = "No video files in torrent";
+                return;
+              }
+
+              loadingText.textContent = `Loading: ${file.name}`;
+              statusText.textContent = `File: ${file.name}`;
+
+              // Create blob URL instead of renderTo for better compatibility
+              file.getBlobURL((err, url) => {
+                if (err) {
+                  hideLoading();
+                  statusText.textContent =
+                    "Error creating video: " + err.message;
+                  return;
+                }
+
+                player.src = url;
+                player
+                  .play()
+                  .then(() => {
+                    hideLoading();
+                  })
+                  .catch((playErr) => {
+                    hideLoading();
+                    // Show unsupported format message
+                    idle.innerHTML = `
                 <div class="idle-grid">
                   <div class="idle-icon" style="border-color: var(--accent);">
                     <i data-lucide="file-video"></i>
@@ -578,151 +881,342 @@
                   <p class="idle-subtitle">${file.name}<br>This video format cannot be played in browser.<br>MKV/AVI files need to be converted to MP4.</p>
                 </div>
               `;
-              idle.classList.remove('hidden');
-              player.classList.add('hidden');
-              lucide.createIcons();
-            });
+                    idle.classList.remove("hidden");
+                    player.classList.add("hidden");
+                    lucide.createIcons();
+                  });
+              });
+
+              torrentStats.classList.add("active");
+
+              const updateStats = () => {
+                if (!webtorrent) return;
+                const down = (torrent.downloadSpeed / 1024 / 1024).toFixed(2);
+                const up = (torrent.uploadSpeed / 1024 / 1024).toFixed(2);
+                const peers = torrent.numPeers;
+                const progress = (torrent.progress * 100).toFixed(1);
+                torrentStats.textContent = `↓${down} MB/s ↑${up} MB/s | ${peers} peers | ${progress}%`;
+                requestAnimationFrame(updateStats);
+              };
+              updateStats();
+            },
+          );
+
+          webtorrent.on("error", (err) => {
+            console.error("WebTorrent error:", err);
+            statusText.textContent =
+              "Torrent error: " + (err.message || "Unknown");
+            hideLoading();
           });
-          
-          torrentStats.classList.add('active');
-          
-          const updateStats = () => {
-            if (!webtorrent) return;
-            const down = (torrent.downloadSpeed / 1024 / 1024).toFixed(2);
-            const up = (torrent.uploadSpeed / 1024 / 1024).toFixed(2);
-            const peers = torrent.numPeers;
-            const progress = (torrent.progress * 100).toFixed(1);
-            torrentStats.textContent = `↓${down} MB/s ↑${up} MB/s | ${peers} peers | ${progress}%`;
-            requestAnimationFrame(updateStats);
-          };
-          updateStats();
-        });
-        
-        webtorrent.on('error', (err) => {
-          console.error('WebTorrent error:', err);
-          statusText.textContent = 'Torrent error: ' + (err.message || 'Unknown');
+        } catch (err) {
           hideLoading();
+          statusText.textContent = "WebTorrent error: " + err.message;
+        }
+      }
+
+      function loadYouTube(url) {
+        const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+        const id = idMatch ? idMatch[1] : null;
+
+        if (id) {
+          // Replace video with iframe
+          const iframe = document.createElement("iframe");
+          iframe.id = "player";
+          iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1&enablejsapi=1`;
+          iframe.allow =
+            "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+          iframe.allowFullscreen = true;
+          iframe.style.cssText =
+            "position:fixed;inset:0;width:100%;height:100%;border:none;";
+
+          player.replaceWith(iframe);
+          hideLoading();
+        }
+      }
+
+      function loadWebsite(url) {
+        // Redirect the TV browser directly to the URL
+        hideLoading();
+        window.location.href = url;
+      }
+
+      // Player controls
+      function formatTime(s) {
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+      }
+
+      // Report state to server for remote control
+      let lastStateReport = 0;
+      function reportState() {
+        const now = Date.now();
+        if (now - lastStateReport < 1000) return; // Max once per second
+        lastStateReport = now;
+
+        fetch("/tv/state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            currentTime: player.currentTime || 0,
+            duration: player.duration || 0,
+            paused: player.paused,
+            mediaName: mediaTitle.textContent || null,
+            streamId: currentStreamId,
+          }),
+        }).catch(() => {}); // Ignore errors
+      }
+
+      player.addEventListener("timeupdate", () => {
+        const pct = (player.currentTime / player.duration) * 100;
+        progressFill.style.width = pct + "%";
+        timeDisplay.textContent = `${formatTime(player.currentTime)} / ${formatTime(player.duration || 0)}`;
+        reportState();
+
+        // Prefetch next episode when 80% done
+        checkPrefetchNextEpisode();
+      });
+
+      player.addEventListener("play", reportState);
+      player.addEventListener("pause", reportState);
+      player.addEventListener("seeked", reportState);
+
+      // Prefetch next episode logic
+      let prefetchedNextEpisode = false;
+      async function checkPrefetchNextEpisode() {
+        if (prefetchedNextEpisode) return;
+        if (
+          !currentEpisodes.length ||
+          currentEpisodeIndex >= currentEpisodes.length - 1
+        )
+          return;
+        if (!player.duration) return;
+
+        const pct = player.currentTime / player.duration;
+        if (pct < 0.8) return; // Only prefetch after 80%
+
+        prefetchedNextEpisode = true;
+        const nextIndex = currentEpisodeIndex + 1;
+        const nextEpisode = currentEpisodes[nextIndex];
+
+        console.log("Prefetching next episode:", nextEpisode.name);
+
+        try {
+          const parts = currentStreamId.split("_");
+          const infoHash = parts[1];
+
+          await fetch("/api/torrent2mp4", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url: `magnet:?xt=urn:btih:${infoHash}`,
+              fileIndex: nextEpisode.index,
+            }),
+          });
+          console.log("Next episode prefetch started");
+        } catch (err) {
+          console.error("Prefetch error:", err);
+        }
+      }
+
+      // Reset prefetch flag when episode changes
+      player.addEventListener("loadstart", () => {
+        prefetchedNextEpisode = false;
+      });
+
+      // Auto-play next episode when current ends
+      player.addEventListener("ended", () => {
+        if (
+          currentEpisodes.length &&
+          currentEpisodeIndex < currentEpisodes.length - 1
+        ) {
+          console.log("Episode ended, playing next...");
+          playEpisode(currentEpisodeIndex + 1);
+        }
+      });
+
+      player.addEventListener("play", () => {
+        playIcon.setAttribute("data-lucide", "pause");
+        lucide.createIcons();
+      });
+
+      player.addEventListener("pause", () => {
+        playIcon.setAttribute("data-lucide", "play");
+        lucide.createIcons();
+      });
+
+      playPause.addEventListener("click", () => {
+        if (player.paused) {
+          player.play();
+        } else {
+          player.pause();
+        }
+      });
+
+      progressBar.addEventListener("click", (e) => {
+        const rect = progressBar.getBoundingClientRect();
+        const pct = (e.clientX - rect.left) / rect.width;
+        player.currentTime = pct * player.duration;
+      });
+
+      fullscreenBtn.addEventListener("click", () => {
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          document.documentElement.requestFullscreen();
+        }
+      });
+
+      // Show/hide controls on mouse move
+      function showControls() {
+        document.body.classList.add("show-controls", "show-cursor");
+        clearTimeout(controlTimeout);
+        controlTimeout = setTimeout(() => {
+          document.body.classList.remove("show-controls", "show-cursor");
+        }, 3000);
+      }
+
+      document.addEventListener("mousemove", showControls);
+      document.addEventListener("click", showControls);
+
+      // Keyboard controls
+      document.addEventListener("keydown", (e) => {
+        switch (e.key) {
+          case " ":
+          case "k":
+            e.preventDefault();
+            if (player.paused) player.play();
+            else player.pause();
+            break;
+          case "ArrowLeft":
+            player.currentTime -= 10;
+            break;
+          case "ArrowRight":
+            player.currentTime += 10;
+            break;
+          case "f":
+            fullscreenBtn.click();
+            break;
+          case "m":
+            player.muted = !player.muted;
+            break;
+        }
+      });
+
+      // Episode panel controls
+      function renderEpisodeList() {
+        episodeList.innerHTML = currentEpisodes
+          .map(
+            (ep, idx) => `
+          <div class="episode-item ${idx === currentEpisodeIndex ? "active" : ""}" data-index="${idx}">
+            <div class="episode-item-title">${ep.name || "Файл " + (idx + 1)}</div>
+            <div class="episode-item-meta">${formatFileSize(ep.length)}</div>
+          </div>
+        `,
+          )
+          .join("");
+
+        episodeList.querySelectorAll(".episode-item").forEach((el) => {
+          el.addEventListener("click", () => {
+            const idx = parseInt(el.dataset.index);
+            playEpisode(idx);
+          });
         });
-      } catch (err) {
-        hideLoading();
-        statusText.textContent = 'WebTorrent error: ' + err.message;
       }
-    }
 
-    function loadYouTube(url) {
-      const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
-      const id = idMatch ? idMatch[1] : null;
-      
-      if (id) {
-        // Replace video with iframe
-        const iframe = document.createElement('iframe');
-        iframe.id = 'player';
-        iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1&enablejsapi=1`;
-        iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-        iframe.allowFullscreen = true;
-        iframe.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:none;';
-        
-        player.replaceWith(iframe);
-        hideLoading();
+      function formatFileSize(bytes) {
+        if (!bytes) return "";
+        const gb = bytes / (1024 * 1024 * 1024);
+        if (gb >= 1) return gb.toFixed(2) + " GB";
+        const mb = bytes / (1024 * 1024);
+        return mb.toFixed(0) + " MB";
       }
-    }
 
-    function loadWebsite(url) {
-      // Redirect the TV browser directly to the URL
-      hideLoading();
-      window.location.href = url;
-    }
+      async function playEpisode(index) {
+        console.log(
+          "playEpisode called:",
+          index,
+          "streamId:",
+          currentStreamId,
+          "episodes:",
+          currentEpisodes.length,
+        );
+        if (!currentStreamId || index < 0 || index >= currentEpisodes.length) {
+          console.log(
+            "playEpisode blocked - streamId:",
+            currentStreamId,
+            "index:",
+            index,
+            "eps:",
+            currentEpisodes.length,
+          );
+          return;
+        }
 
-    // Player controls
-    function formatTime(s) {
-      const m = Math.floor(s / 60);
-      const sec = Math.floor(s % 60);
-      return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-    }
+        currentEpisodeIndex = index;
+        showLoading("Завантаження...");
 
-    player.addEventListener('timeupdate', () => {
-      const pct = (player.currentTime / player.duration) * 100;
-      progressFill.style.width = pct + '%';
-      timeDisplay.textContent = `${formatTime(player.currentTime)} / ${formatTime(player.duration || 0)}`;
-    });
+        try {
+          // Extract infoHash from streamId (format: ts_HASH_INDEX)
+          const parts = currentStreamId.split("_");
+          const infoHash = parts[1];
 
-    player.addEventListener('play', () => {
-      playIcon.setAttribute('data-lucide', 'pause');
-      lucide.createIcons();
-    });
+          const response = await fetch("/api/torrent2mp4", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url: `magnet:?xt=urn:btih:${infoHash}`,
+              fileIndex: currentEpisodes[index].index,
+            }),
+          });
 
-    player.addEventListener('pause', () => {
-      playIcon.setAttribute('data-lucide', 'play');
-      lucide.createIcons();
-    });
+          const data = await response.json();
+          if (data.error) throw new Error(data.error);
 
-    playPause.addEventListener('click', () => {
-      if (player.paused) {
-        player.play();
-      } else {
-        player.pause();
+          currentUrl = null; // Reset to allow reload
+          currentStreamId = data.streamId;
+          mediaTitle.textContent = data.name || currentEpisodes[index].name;
+          loadHLS(data.streamUrl, data.name);
+
+          renderEpisodeList(); // Update active state
+          episodePanel.classList.remove("active");
+        } catch (err) {
+          statusText.textContent = "Помилка: " + err.message;
+          hideLoading();
+        }
       }
-    });
 
-    progressBar.addEventListener('click', (e) => {
-      const rect = progressBar.getBoundingClientRect();
-      const pct = (e.clientX - rect.left) / rect.width;
-      player.currentTime = pct * player.duration;
-    });
+      // Episode panel toggle
+      episodeToggle.addEventListener("click", () => {
+        episodePanel.classList.toggle("active");
+        showControls();
+      });
 
-    fullscreenBtn.addEventListener('click', () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        document.documentElement.requestFullscreen();
-      }
-    });
+      episodeClose.addEventListener("click", () => {
+        episodePanel.classList.remove("active");
+      });
 
-    // Show/hide controls on mouse move
-    function showControls() {
-      document.body.classList.add('show-controls', 'show-cursor');
-      clearTimeout(controlTimeout);
-      controlTimeout = setTimeout(() => {
-        document.body.classList.remove('show-controls', 'show-cursor');
-      }, 3000);
-    }
+      // Skip buttons
+      skipBack.addEventListener("click", () => {
+        player.currentTime = Math.max(0, player.currentTime - 10);
+        showControls();
+      });
 
-    document.addEventListener('mousemove', showControls);
-    document.addEventListener('click', showControls);
+      skipForward.addEventListener("click", () => {
+        player.currentTime = Math.min(player.duration, player.currentTime + 10);
+        showControls();
+      });
 
-    // Keyboard controls
-    document.addEventListener('keydown', (e) => {
-      switch (e.key) {
-        case ' ':
-        case 'k':
-          e.preventDefault();
-          if (player.paused) player.play(); else player.pause();
-          break;
-        case 'ArrowLeft':
-          player.currentTime -= 10;
-          break;
-        case 'ArrowRight':
-          player.currentTime += 10;
-          break;
-        case 'f':
-          fullscreenBtn.click();
-          break;
-        case 'm':
-          player.muted = !player.muted;
-          break;
-      }
-    });
+      // Start SSE connection
+      connectSSE();
 
-    // Start SSE connection
-    connectSSE();
-
-    // Check for existing URL on load
-    fetch('/tv/current')
-      .then(r => r.json())
-      .then(data => {
-        if (data.url) loadUrl(data.url);
-      })
-      .catch(() => {});
-  </script>
-</body>
+      // Check for existing URL on load
+      fetch("/tv/current")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.url) loadUrl(data.url, data);
+        })
+        .catch(() => {});
+    </script>
+  </body>
 </html>
