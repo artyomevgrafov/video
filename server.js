@@ -236,6 +236,7 @@ app.post("/api/url2hls", express.json(), async (req, res) => {
     const ffmpegArgs = buildHlsArgs(
       path.join(hlsDir, "index.m3u8"),
       `/hls/${streamId}/`,
+      { transcodeVideo: true },
     );
     const ffmpeg = spawn("ffmpeg", ffmpegArgs, {
       stdio: ["pipe", "ignore", "inherit"],
@@ -496,22 +497,39 @@ function ensureDir(dirPath) {
   if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
 }
 
-function buildHlsArgs(outputPath, baseUrl) {
-  const args = [
-    "-hwaccel",
-    "auto",
-    "-fflags",
-    "+genpts",
-    "-i",
-    "pipe:0",
-    "-c:v",
-    "copy",
-    "-c:a",
-    "aac",
-    "-ac",
-    "2",
-    "-ar",
-    "44100",
+function buildHlsArgs(outputPath, baseUrl, opts = {}) {
+  const {
+    transcodeVideo = false,
+    videoEncoder = process.env.HLS_VIDEO_CODEC || "libx264",
+    videoBitrate = "2500k",
+    transcodeAudio = true,
+    audioBitrate = "128k",
+    scale,
+  } = opts;
+
+  const args = ["-hwaccel", "auto", "-fflags", "+genpts", "-i", "pipe:0"];
+
+  if (transcodeVideo) {
+    args.push("-c:v", videoEncoder);
+    if (!/nvenc|vaapi|qsv/i.test(videoEncoder)) {
+      args.push("-preset", "veryfast", "-tune", "zerolatency");
+    }
+    if (scale) {
+      args.push("-vf", `scale=${scale}`);
+    }
+    if (videoBitrate) args.push("-b:v", videoBitrate);
+  } else {
+    args.push("-c:v", "copy");
+  }
+
+  if (transcodeAudio) {
+    args.push("-c:a", "aac", "-ac", "2", "-ar", "44100");
+    if (audioBitrate) args.push("-b:a", audioBitrate);
+  } else {
+    args.push("-c:a", "copy");
+  }
+
+  args.push(
     "-max_muxing_queue_size",
     "1024",
     "-f",
@@ -522,7 +540,8 @@ function buildHlsArgs(outputPath, baseUrl) {
     "10",
     "-hls_flags",
     "delete_segments+omit_endlist",
-  ];
+  );
+
   if (baseUrl) {
     args.push("-hls_base_url", baseUrl);
   }
