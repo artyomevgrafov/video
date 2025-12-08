@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HLS Seek Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7"></script>
+    <style>
+        body { font-family: monospace; background: #1a1a1a; color: #fff; padding: 20px; }
+        video { width: 100%; max-width: 800px; background: #000; }
+        .log { background: #000; padding: 10px; height: 300px; overflow-y: auto; margin-top: 10px; font-size: 12px; }
+        .log .error { color: #ff6b6b; }
+        .log .success { color: #69db7c; }
+        .log .info { color: #74c0fc; }
+        button { background: #4c6ef5; color: #fff; border: none; padding: 10px 20px; margin: 5px; cursor: pointer; }
+        button:hover { background: #5c7cfa; }
+        .controls { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h2>HLS Seek Test (Frontend)</h2>
+
+    <video id="player" controls></video>
+
+    <div class="controls">
+        <button onclick="createStream()">1. Create Stream</button>
+        <button onclick="seekTo(300)">Seek 5min</button>
+        <button onclick="seekTo(900)">Seek 15min</button>
+        <button onclick="seekTo(1800)">Seek 30min</button>
+        <button onclick="seekTo(2700)">Seek 45min</button>
+        <button onclick="manualSeekRequest()">Manual Seek API</button>
+    </div>
+
+    <div class="log" id="log"></div>
+
+    <script>
+        const player = document.getElementById('player');
+        const logDiv = document.getElementById('log');
+        let hls = null;
+        let streamId = null;
+        let currentUrl = null;
+
+        function log(msg, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div class="${type}">[${time}] ${msg}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(msg);
+        }
+
+        async function createStream() {
+            log('Creating stream...', 'info');
+
+            try {
+                const resp = await fetch('/api/local2hls', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filePath: '/home/q/Відео/downloads/All.Her.Fault.S01.2025.PCOK.720p.WEB-DL.H264_il68k/All.Her.Fault.S01E04.PCOK.720p.WEB-DL.H264.mkv',
+                        pushToTv: false
+                    })
+                });
+
+                const data = await resp.json();
+                streamId = data.streamId;
+                currentUrl = data.hlsUrl;
+
+                log(`Stream created: ${streamId}`, 'success');
+                log(`URL: ${currentUrl}`, 'info');
+
+                loadHls(currentUrl);
+            } catch (err) {
+                log(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        function loadHls(url) {
+            if (hls) {
+                hls.destroy();
+            }
+
+            hls = new Hls({
+                enableWorker: true,
+                lowLatencyMode: false,
+                maxBufferLength: 60,
+            });
+
+            hls.loadSource(url);
+            hls.attachMedia(player);
+
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                log('Manifest parsed, starting playback', 'success');
+                player.play().catch(() => {});
+            });
+
+            hls.on(Hls.Events.ERROR, async (e, data) => {
+                log(`HLS Error: type=${data.type}, details=${data.details}, fatal=${data.fatal}`, 'error');
+
+                // Check if this is a seek-related error
+                if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                    log(`Network error - checking if seek needed...`, 'info');
+
+                    if (url.includes('/hls/local_')) {
+                        const seekTime = player.currentTime;
+                        const sid = url.match(/local_[a-f0-9]+/)?.[0];
+
+                        if (sid && seekTime > 0) {
+                            log(`Requesting seek for ${sid} to ${seekTime}s`, 'info');
+
+                            try {
+                                const resp = await fetch('/api/local2hls/seek', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ streamId: sid, position: Math.floor(seekTime) })
+                                });
+
+                                if (resp.ok) {
+                                    log('Seek request OK, reloading HLS in 2s...', 'success');
+                                    setTimeout(() => {
+                                        hls.stopLoad();
+                                        hls.startLoad();
+                                        log('HLS reloaded', 'success');
+                                    }, 2000);
+                                } else {
+                                    log(`Seek failed: ${resp.status}`, 'error');
+                                }
+                            } catch (err) {
+                                log(`Seek request error: ${err.message}`, 'error');
+                            }
+                        }
+                    }
+                }
+
+                if (data.fatal) {
+                    log('Fatal error!', 'error');
+                }
+            });
+
+            hls.on(Hls.Events.FRAG_LOADED, (e, data) => {
+                log(`Fragment loaded: ${data.frag.sn}`, 'info');
+            });
+        }
+
+        function seekTo(seconds) {
+            if (!player) return;
+            log(`Seeking to ${seconds}s (${seconds/60} min)...`, 'info');
+            player.currentTime = seconds;
+        }
+
+        async function manualSeekRequest() {
+            if (!streamId) {
+                log('No stream!', 'error');
+                return;
+            }
+
+            const pos = player.currentTime;
+            log(`Manual seek request to ${pos}s...`, 'info');
+
+            try {
+                const resp = await fetch('/api/local2hls/seek', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ streamId, position: Math.floor(pos) })
+                });
+
+                const data = await resp.json();
+                log(`Response: ${JSON.stringify(data)}`, resp.ok ? 'success' : 'error');
+
+                if (resp.ok) {
+                    setTimeout(() => {
+                        hls.stopLoad();
+                        hls.startLoad();
+                        log('HLS reloaded after manual seek', 'success');
+                    }, 3000);
+                }
+            } catch (err) {
+                log(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        // Log player events
+        player.addEventListener('seeking', () => log(`Player seeking to ${player.currentTime}s`, 'info'));
+        player.addEventListener('seeked', () => log(`Player seeked to ${player.currentTime}s`, 'success'));
+        player.addEventListener('waiting', () => log('Player waiting (buffering)', 'info'));
+        player.addEventListener('playing', () => log('Player playing', 'success'));
+        player.addEventListener('error', (e) => log(`Player error: ${e.message}`, 'error'));
+    </script>
+</body>
+</html>

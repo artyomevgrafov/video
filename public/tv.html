@@ -772,7 +772,41 @@
             player.play().catch(() => {});
             hideLoading();
           });
-          hls.on(Hls.Events.ERROR, (e, data) => {
+          hls.on(Hls.Events.ERROR, async (e, data) => {
+            console.log("HLS Error:", data.type, data.details, data.fatal);
+
+            // Handle seek errors for local streams
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR &&
+                url.includes("/hls/local_")) {
+              const seekTime = player.currentTime;
+              const streamId = url.match(/local_[a-f0-9]+/)?.[0];
+
+              if (streamId && seekTime > 0) {
+                console.log(`Requesting seek for ${streamId} to ${seekTime}s`);
+                statusText.textContent = "Buffering...";
+
+                try {
+                  const resp = await fetch("/api/local2hls/seek", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ streamId, position: Math.floor(seekTime) })
+                  });
+
+                  if (resp.ok) {
+                    // Reload HLS from new position
+                    setTimeout(() => {
+                      hls.stopLoad();
+                      hls.startLoad();
+                      statusText.textContent = "Playing";
+                    }, 2000);
+                    return;
+                  }
+                } catch (err) {
+                  console.error("Seek request failed:", err);
+                }
+              }
+            }
+
             if (data.fatal) {
               statusText.textContent = "HLS Error";
               hideLoading();

@@ -279,13 +279,29 @@ if (config.features.hls) {
       return res.status(404).json({ error: "Original file not found" });
     }
 
-    // Kill current ffmpeg
+    // Kill current ffmpeg and wait for it to exit
     if (stream.ffmpegProcess && !stream.ffmpegProcess.killed) {
-      stream.ffmpegProcess.kill();
+      stream.ffmpegProcess.kill("SIGKILL");
+      // Wait for process to actually exit
+      await new Promise((resolve) => {
+        stream.ffmpegProcess.on("close", resolve);
+        setTimeout(resolve, 2000); // Fallback timeout
+      });
     }
 
     const hlsDir = stream.hlsDir;
-    utils.resetDir(hlsDir);
+
+    // Wait a bit more for file handles to be released
+    await new Promise((r) => setTimeout(r, 500));
+
+    try {
+      utils.resetDir(hlsDir);
+    } catch (e) {
+      console.error("[HLS] resetDir error:", e.message);
+      // Try again after delay
+      await new Promise((r) => setTimeout(r, 1000));
+      utils.resetDir(hlsDir);
+    }
 
     console.log(`[HLS] Seeking ${streamId} to ${position}s`);
 
@@ -318,10 +334,10 @@ if (config.features.hls) {
     stream.ffmpegProcess = ffmpeg;
     stream.seekPosition = position;
 
-    // Wait for first segment
+    // Wait for first segment (transcoding takes longer, wait up to 60s)
     let attempts = 0;
-    while (attempts < 20) {
-      await new Promise((r) => setTimeout(r, 300));
+    while (attempts < 120) {
+      await new Promise((r) => setTimeout(r, 500));
       const m3u8 = path.join(hlsDir, "index.m3u8");
       if (fs.existsSync(m3u8) && fs.readFileSync(m3u8, "utf8").includes(".ts")) {
         break;
